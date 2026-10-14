@@ -132,6 +132,21 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
    const {error:neighborError}=await sb.from('equipment_events').update({end_time:neighborEnd}).eq('id',neighbor.id);
    if(neighborError)throw new Error('АНХААР: Сонгосон бүртгэл хадгалагдсан боловч өмнөх бүртгэлийн цаг өөрчлөгдсөнгүй! ID '+neighbor.id+': '+neighborError.message+'. Дахин шалгана уу.');
   }
+  // Synchronize the operator shown on the main Data Event equipment card only
+  // when this edited event is still the latest open event for that equipment.
+  // A historical edit must never replace the currently assigned operator.
+  if(!payload.end_time){
+   const {data:latestRows,error:latestError}=await sb.from('equipment_events')
+    .select('id,start_time,end_time').eq('equipment_id',row.equipment_id)
+    .order('start_time',{ascending:false}).limit(1);
+   if(latestError)throw new Error('Төлөв хадгалагдсан боловч одоогийн операторыг шалгахад алдаа гарлаа: '+latestError.message);
+   if(latestRows&&latestRows.length&&String(latestRows[0].id)===String(row.id)&&!latestRows[0].end_time){
+    const {error:operatorError}=await sb.from('equipment_operator_names').upsert(
+     {equipment_id:String(row.equipment_id),operator_name:payload.operator_name||''},
+     {onConflict:'equipment_id'});
+    if(operatorError)throw new Error('Төлөв хадгалагдсан боловч үндсэн Data Event-ийн операторын нэр шинэчлэгдсэнгүй: '+operatorError.message);
+   }
+  }
   // If the edited row is the currently open event and remains open, sync its summary status on equipment.
   if(!row.end_time&&!payload.end_time){const {error:syncError}=await sb.from('equipment').update({current_status:payload.status}).eq('id',row.equipment_id);if(syncError)tell('Төлөвийн мөр хадгалагдсан. Харин equipment.current_status шинэчлэхэд алдаа гарлаа: '+syncError.message,true);}
  }else{
