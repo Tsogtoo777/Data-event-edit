@@ -31,7 +31,7 @@ button{background:#1b1b1b;color:var(--orange);border:1px solid #4b4b4b;border-ra
 <section id="appView" class="hidden">
   <div class="notice">Бүртгэлийн мөрийг засахад хуучин мөрийн <b>id</b>-г ашиглан шинэчилнэ. Устгах үйлдэл байхгүй.</div>
   <div class="tabs"><button data-tab="events" class="active">Төлөв засах</button><button data-tab="production">Бүтээл засах</button><button id="refreshBtn">↻ Шинэчлэх</button></div>
-  <section id="filters" class="panel"><div class="row"><label>Огноо<input id="filterDate" type="date"></label><label>Техник<select id="filterEquipment"><option value="">Бүх техник</option></select></label><label>Хайх<input id="filterText" type="search" placeholder="Төлөв, оператор, тайлбар..."></label><label>Эх сурвалж<span class="subtle" style="display:block;margin-top:8px">Сүүлийн татсан бүртгэлээс хайна.</span></label></div></section>
+  <section id="filters" class="panel"><div class="row"><label>Огноо<input id="filterDate" type="date"></label><label id="filterHourWrap" class="hidden">Цаг<select id="filterHour"><option value="">Бүх цаг</option></select></label><label>Техник<select id="filterEquipment"><option value="">Бүх техник</option></select></label><label>Хайх<input id="filterText" type="search" placeholder="Төлөв, оператор, тайлбар..."></label><label>Эх сурвалж<span class="subtle" style="display:block;margin-top:8px">Сүүлийн татсан бүртгэлээс хайна.</span></label></div></section>
   <div id="loadError" class="error hidden"></div>
   <section id="results" class="panel"></section>
   <section id="editor" class="panel hidden"></section>
@@ -183,8 +183,13 @@ async function loadData(){hideError('loadError');$('results').innerHTML='<p clas
  const fails=[];if(evR.error)fails.push('Төлөвийн хүснэгт: '+evR.error.message);if(prR.error)fails.push('Бүтээлийн хүснэгт: '+prR.error.message);
  events=evR.data||[];production=prR.data||[];
  if(fails.length)showError('loadError',fails.join('\n')+'\nRLS SELECT policy болон хүснэгтийн нэрийг шалгана уу.');
- populateEquipmentFilter();renderResults();
+ setupHourFilter();populateEquipmentFilter();renderResults();
  }catch(err){showError('loadError',err.message||String(err));$('results').innerHTML='<p class="subtle">Өгөгдөл уншиж чадсангүй.</p>';}}
+function setupHourFilter(){
+ const sel=$('filterHour');
+ if(sel.options.length===1)sel.innerHTML='<option value="">Бүх цаг</option>'+Array.from({length:24},(_,i)=>`<option value="${i}">${String(i).padStart(2,'0')}:00–${String((i+1)%24).padStart(2,'0')}:00</option>`).join('');
+ $('filterHourWrap').classList.toggle('hidden',currentTab!=='production');
+}
 function populateEquipmentFilter(){
  const select=$('filterEquipment'),previous=select.value;
  const list=currentTab==='production'?productionEquipment():equipment;
@@ -192,9 +197,9 @@ function populateEquipmentFilter(){
  select.innerHTML=`<option value="">${label}</option>`+list.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
  select.value=list.some(x=>String(x.id)===previous)?previous:'';
 }
-function filteredRows(){const day=$('filterDate').value, eq=$('filterEquipment').value, q=$('filterText').value.trim().toLowerCase();const rows=currentTab==='events'?events:production.filter(r=>productionEquipmentKind(equipment.find(e=>String(e.id)===String(r.equipment_id))));return rows.filter(r=>{
+function filteredRows(){const day=$('filterDate').value, eq=$('filterEquipment').value, hour=$('filterHour').value, q=$('filterText').value.trim().toLowerCase();const rows=currentTab==='events'?events:production.filter(r=>productionEquipmentKind(equipment.find(e=>String(e.id)===String(r.equipment_id))));return rows.filter(r=>{
  const rd=currentTab==='events'?localDate(r.start_time):String(r.production_date||'');
- if(day&&rd!==day)return false;if(eq&&String(r.equipment_id)!==eq)return false;
+ if(day&&rd!==day)return false;if(eq&&String(r.equipment_id)!==eq)return false;if(currentTab==='production'&&hour!==''&&Number(r.hour_slot)!==Number(hour))return false;
  const parts=currentTab==='events'?[eqName(r.equipment_id),r.status,r.operator_name,r.comment,r.smu,r.km]:[eqName(r.equipment_id),r.production_type,r.material_type,r.measure_type,r.amount,r.hole_count,r.comment,r.hour_slot,r.production_date,r.block_code,r.level_name];
  return !q||parts.some(x=>String(x??'').toLowerCase().includes(q));});}
 function renderResults(){const rows=filteredRows();const shown=rows.slice(0,300);let html=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">${currentTab==='events'?'Төлөвийн бүртгэл':'Бүтээлийн бүртгэл'}</h2><span class="count">${rows.length} мөр · хамгийн ихдээ 300-г харуулна</span></div>`;
@@ -313,9 +318,9 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
  }
  closeEditor();tell('Өөрчлөлт хадгалагдлаа.');await loadData();
  }catch(err){tell('Хадгалах алдаа: '+(err.message||String(err)),true);}finally{if(button){button.disabled=false;button.textContent='Өөрчлөлт хадгалах';}}});
-function switchTab(tab){currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();populateEquipmentFilter();renderResults();}
+function switchTab(tab){currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();setupHourFilter();populateEquipmentFilter();renderResults();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
-['filterDate','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',renderResults));$('refreshBtn').addEventListener('click',loadData);
+['filterDate','filterHour','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',renderResults));$('refreshBtn').addEventListener('click',loadData);
 checkSession();
 </script>
 </body>
