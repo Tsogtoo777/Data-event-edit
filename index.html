@@ -154,6 +154,16 @@ function fmtDate(v){if(!v)return "—";const d=new Date(v);return Number.isNaN(d
 function numOrNull(v){return String(v??"").trim()===""?null:Number(v);}
 function opts(list,val){const all=[...new Set([...(list||[]).filter(x=>x!==null&&x!==undefined&&x!==""), ...(val?[val]:[])])];return all.map(x=>`<option value="${esc(x)}"${String(x)===String(val??"")?" selected":""}>${esc(x)}</option>`).join("");}
 function eqName(id){const e=equipment.find(x=>String(x.id)===String(id));return e?e.name:`Техник #${id??"—"}`;}
+// Only haul trucks and drills are production equipment; keep all equipment for event editing.
+function productionEquipmentKind(e){
+ const name=String(e?.name||'').toLowerCase();
+ const type=String(e?.equipment_type||'').toLowerCase();
+ if(/өрөм|drill|sandvik|dr\d{3,}/i.test(name+' '+type))return 'drill';
+ if(/белаз|belaz|830e|930e|980e|komatsu\s*830|komatsu\s*930|komatsu\s*980/i.test(name+' '+type))return 'truck';
+ return null;
+}
+function productionEquipment(){return equipment.filter(e=>productionEquipmentKind(e));}
+
 function canUse(){return currentUser&&canEditUser(currentUser);}
 async function checkSession(){const {data,error}=await sb.auth.getSession();if(error){showError("loginError",error.message);return;}if(data.session)await acceptSession(data.session);else showLogin();}
 function showLogin(){currentUser=null;$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');$('logoutBtn').classList.add('hidden');$('who').textContent='';}
@@ -175,8 +185,14 @@ async function loadData(){hideError('loadError');$('results').innerHTML='<p clas
  if(fails.length)showError('loadError',fails.join('\n')+'\nRLS SELECT policy болон хүснэгтийн нэрийг шалгана уу.');
  populateEquipmentFilter();renderResults();
  }catch(err){showError('loadError',err.message||String(err));$('results').innerHTML='<p class="subtle">Өгөгдөл уншиж чадсангүй.</p>';}}
-function populateEquipmentFilter(){const select=$('filterEquipment'),previous=select.value;select.innerHTML='<option value="">Бүх техник</option>'+equipment.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');select.value=previous;}
-function filteredRows(){const day=$('filterDate').value, eq=$('filterEquipment').value, q=$('filterText').value.trim().toLowerCase();const rows=currentTab==='events'?events:production;return rows.filter(r=>{
+function populateEquipmentFilter(){
+ const select=$('filterEquipment'),previous=select.value;
+ const list=currentTab==='production'?productionEquipment():equipment;
+ const label=currentTab==='production'?'Бүх БелАЗ / Өрөм':'Бүх техник';
+ select.innerHTML=`<option value="">${label}</option>`+list.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
+ select.value=list.some(x=>String(x.id)===previous)?previous:'';
+}
+function filteredRows(){const day=$('filterDate').value, eq=$('filterEquipment').value, q=$('filterText').value.trim().toLowerCase();const rows=currentTab==='events'?events:production.filter(r=>productionEquipmentKind(equipment.find(e=>String(e.id)===String(r.equipment_id))));return rows.filter(r=>{
  const rd=currentTab==='events'?localDate(r.start_time):String(r.production_date||'');
  if(day&&rd!==day)return false;if(eq&&String(r.equipment_id)!==eq)return false;
  const parts=currentTab==='events'?[eqName(r.equipment_id),r.status,r.operator_name,r.comment,r.smu,r.km]:[eqName(r.equipment_id),r.production_type,r.material_type,r.measure_type,r.amount,r.hole_count,r.comment,r.hour_slot,r.production_date,r.block_code,r.level_name];
@@ -189,7 +205,7 @@ function renderResults(){const rows=filteredRows();const shown=rows.slice(0,300)
 function eventCard(r){const ended=r.end_time?fmtDate(r.end_time):'Одоог хүртэл (нээлттэй)';return `<article class="entry"><div><strong>${esc(eqName(r.equipment_id))} · ${esc(r.status||'Төлөвгүй')}</strong><div class="meta">Эхэлсэн: ${esc(fmtDate(r.start_time))} · Дууссан: ${esc(ended)}</div><div class="meta">Оператор: ${esc(r.operator_name||'—')} · SMU: ${esc(r.smu??'—')} · KM: ${esc(r.km??'—')}</div>${r.comment?`<div class="meta">Тайлбар: ${esc(r.comment)}</div>`:''}<span class="badge">ID: ${esc(r.id??'ID алга')}</span></div><div class="actions"><button data-edit="event" data-id="${esc(r.id)}" ${r.id==null?'disabled':''}>Засах</button></div></article>`;}
 function productionCard(r){return `<article class="entry"><div><strong>${esc(eqName(r.equipment_id))} · ${esc(r.amount??'—')} ${esc(r.measure_type||'')}</strong><div class="meta">Огноо: ${esc(r.production_date||'—')} · Цаг: ${esc(r.hour_slot==null?'—':String(r.hour_slot).padStart(2,'0')+':00')}</div><div class="meta">Ажлын төрөл: ${esc(r.production_type||'—')} · Цооног: ${esc(r.hole_count??'—')} · Материал: ${esc(r.material_type||'—')}</div><div class="meta">Блок / Түвшин (бүртгэгдсэн): ${esc(r.block_code||'—')} / ${esc(r.level_name||'—')}</div>${r.comment?`<div class="meta">Тайлбар: ${esc(r.comment)}</div>`:''}<span class="badge">ID: ${esc(r.id??'ID алга')}</span></div><div class="actions"><button data-edit="production" data-id="${esc(r.id)}" ${r.id==null?'disabled':''}>Засах</button></div></article>`;}
 function findCurrent(type,id){const arr=type==='event'?events:production;return arr.find(r=>String(r.id)===String(id));}
-function startEdit(type,id){const r=findCurrent(type,id);if(!r)return tell('Засах мөр олдсонгүй. Дахин шинэчилнэ үү.',true);editing={type,row:r};type==='event'?renderEventEditor(r):renderProductionEditor(r);if(type==='event'){refreshOperatorRequirement();filterEditStatuses();}$('editor').classList.remove('hidden');$('editor').scrollIntoView({behavior:'smooth',block:'start'});}
+function startEdit(type,id){const r=findCurrent(type,id);if(!r)return tell('Засах мөр олдсонгүй. Дахин шинэчилнэ үү.',true);if(type==='production'&&!productionEquipmentKind(equipment.find(e=>String(e.id)===String(r.equipment_id))))return tell('Бүтээл засах хэсэг зөвхөн БелАЗ болон Өрөмд зориулагдсан.',true);editing={type,row:r};type==='event'?renderEventEditor(r):renderProductionEditor(r);if(type==='event'){refreshOperatorRequirement();filterEditStatuses();}$('editor').classList.remove('hidden');$('editor').scrollIntoView({behavior:'smooth',block:'start'});}
 function renderEventEditor(r){const states=statusNames;$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Төлөв засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Техник өөрчлөхгүй. Эхлэл/төгсгөлийн цаг, төлөв болон бусад мэдээллийг шалгана уу.</p><form id="editEventForm"><div class="formrow"><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label><label>Төлөв<input id="eStatusSearch" type="search" placeholder="Төлөвийн нэрээр хайх..." autocomplete="off"><select id="eStatus" required>${opts(states,r.status)}</select><span id="eStatusCount" class="subtle"></span></label><label>Эхэлсэн цаг<input id="eStart" type="datetime-local" value="${esc(toLocalInput(r.start_time))}" required></label><label>Дууссан цаг<input id="eEnd" type="datetime-local" value="${esc(toLocalInput(r.end_time))}"><span class="subtle">Хоосон бол нээлттэй төлөв гэж үзнэ.</span></label><label>Оператор<input id="eOperator" value="${esc(r.operator_name||'')}"><span id="eOperatorHint" class="subtle"></span></label><label>SMU / мотоцаг<input id="eSmu" type="number" min="0" step="0.1" value="${esc(r.smu??'')}"></label><label>KM<input id="eKm" type="number" min="0" step="0.1" value="${esc(r.km??'')}"></label></div><label>Тайлбар<textarea id="eComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
 function refreshOperatorRequirement(){
  const status=$('eStatus')?.value||'';
@@ -222,7 +238,7 @@ function renderProductionEditor(r){
  const hourOptions=Array.from({length:24},(_,i)=>`<option value="${i}"${Number(r.hour_slot)===i?' selected':''}>${String(i).padStart(2,'0')}:00–${String((i+1)%24).padStart(2,'0')}:00</option>`).join('');
  const blockText=`<div class="notice">Бүтээлд хадгалсан Блок / Түвшин: <b>${esc(r.block_code||'Бүртгэлгүй')} / ${esc(r.level_name||'Бүртгэлгүй')}</b>. Бүртгэлгүй бол хуучин бичлэгт байршил хадгалагдаагүй гэсэн үг. PC3000/PC4000-ийн одоогийн байршлыг энд автоматаар нөхөж бичихгүй.</div>`;
  const drillFields=`<label>Тууш метр<input id="pAmount" type="number" min="0" step="0.1" value="${esc(r.amount??'')}" required></label><label>Цооногийн тоо<input id="pHoles" type="number" min="0" step="1" value="${esc(r.hole_count??'')}"></label><label>Ажлын төрөл<select id="pType">${opts(['Өрмийн бүтээл','Сэргээлт'],r.production_type)}</select></label>`;
- const truckFields=`<label>Рейсийн тоо<input id="pAmount" type="number" min="0" step="1" value="${esc(r.amount??'')}" required></label><label>Ачуулсан экскаватор<input value="${esc(eqName(r.dump_equipment_id))}" disabled></label><label>Материалын төрөл<input id="pMaterial" value="${esc(r.material_type||'')}"></label>`;
+ const truckFields=`<label>Рейсийн тоо<input id="pAmount" type="number" min="0" step="1" value="${esc(r.amount??'')}" required></label><label>Ачуулсан экскаватор<input value="${esc((r.dump_equipment_id==null?'Бүртгэлгүй':eqName(r.dump_equipment_id)))}" disabled></label><label>Материалын төрөл<input id="pMaterial" value="${esc(r.material_type||'')}"></label>`;
  $('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">${drill?'Өрмийн':'БелАЗ-ийн'} бүтээл засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div>${blockText}<p class="subtle">Техник, ачуулсан экскаватор, блок/түвшин, хэмжих нэгжийг энэ дэлгэцээр солихгүй. Огноо, цагийг өөрчилбөл хадгалсан байршлын үнэн зөвийг нягтална уу.</p><form id="editProductionForm"><div class="formrow"><label>Огноо<input id="pDate" type="date" value="${esc(r.production_date||'')}" required></label><label>Цаг<select id="pHour" required>${hourOptions}</select></label><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label>${drill?drillFields:truckFields}</div><label>Тайлбар<textarea id="pComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;
 }
 
@@ -297,7 +313,7 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
  }
  closeEditor();tell('Өөрчлөлт хадгалагдлаа.');await loadData();
  }catch(err){tell('Хадгалах алдаа: '+(err.message||String(err)),true);}finally{if(button){button.disabled=false;button.textContent='Өөрчлөлт хадгалах';}}});
-function switchTab(tab){currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();renderResults();}
+function switchTab(tab){currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();populateEquipmentFilter();renderResults();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 ['filterDate','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',renderResults));$('refreshBtn').addEventListener('click',loadData);
 checkSession();
