@@ -220,7 +220,7 @@ function isDrillProduction(r){
 function renderProductionEditor(r){
  const drill=isDrillProduction(r);
  const hourOptions=Array.from({length:24},(_,i)=>`<option value="${i}"${Number(r.hour_slot)===i?' selected':''}>${String(i).padStart(2,'0')}:00–${String((i+1)%24).padStart(2,'0')}:00</option>`).join('');
- const blockText=`<div class="notice">Тухайн үед хадгалсан байршил: <b>${esc(r.block_code||'Бүртгэлгүй')} / ${esc(r.level_name||'Бүртгэлгүй')}</b>. Энэ засвараар блок/түвшин автоматаар солигдохгүй. Хуучин бичлэгийн байршлыг одоогийн байршлаар нөхөж бичихгүй.</div>`;
+ const blockText=`<div class="notice">Бүтээлд хадгалсан Блок / Түвшин: <b>${esc(r.block_code||'Бүртгэлгүй')} / ${esc(r.level_name||'Бүртгэлгүй')}</b>. Бүртгэлгүй бол хуучин бичлэгт байршил хадгалагдаагүй гэсэн үг. PC3000/PC4000-ийн одоогийн байршлыг энд автоматаар нөхөж бичихгүй.</div>`;
  const drillFields=`<label>Тууш метр<input id="pAmount" type="number" min="0" step="0.1" value="${esc(r.amount??'')}" required></label><label>Цооногийн тоо<input id="pHoles" type="number" min="0" step="1" value="${esc(r.hole_count??'')}"></label><label>Ажлын төрөл<select id="pType">${opts(['Өрмийн бүтээл','Сэргээлт'],r.production_type)}</select></label>`;
  const truckFields=`<label>Рейсийн тоо<input id="pAmount" type="number" min="0" step="1" value="${esc(r.amount??'')}" required></label><label>Ачуулсан экскаватор<input value="${esc(eqName(r.dump_equipment_id))}" disabled></label><label>Материалын төрөл<input id="pMaterial" value="${esc(r.material_type||'')}"></label>`;
  $('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">${drill?'Өрмийн':'БелАЗ-ийн'} бүтээл засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div>${blockText}<p class="subtle">Техник, ачуулсан экскаватор, блок/түвшин, хэмжих нэгжийг энэ дэлгэцээр солихгүй. Огноо, цагийг өөрчилбөл хадгалсан байршлын үнэн зөвийг нягтална уу.</p><form id="editProductionForm"><div class="formrow"><label>Огноо<input id="pDate" type="date" value="${esc(r.production_date||'')}" required></label><label>Цаг<select id="pHour" required>${hourOptions}</select></label><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label>${drill?drillFields:truckFields}</div><label>Тайлбар<textarea id="pComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;
@@ -289,7 +289,7 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
    if(drill&&holes!==null&&(!Number.isInteger(holes)||holes<0))throw new Error('Цооногийн тоо бүхэл, 0-ээс багагүй байх ёстой.');
    const date=$('pDate').value;
    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('Огноо буруу байна.');
-   if((date!==String(row.production_date||'')||hour!==Number(row.hour_slot))&&!confirm('Огноо/цаг өөрчлөгдөж байна. Хадгалагдсан блок/түвшин хэвээр үлдэнэ. Үргэлжлүүлэх үү?'))return;
+   if((date!==String(row.production_date||'')||hour!==Number(row.hour_slot))&&!confirm('Бүтээл ID '+row.id+'-ийн огноо/цаг өөрчлөгдөж байна. Тухайн үед хадгалсан блок/түвшин хэвээр үлдэнэ. Бодит мэдээлэл зөв гэдгийг баталгаажуулж үргэлжлүүлэх үү?'))return;
    const payload={production_date:date,hour_slot:hour,amount,comment:$('pComment').value.trim()||null};
    if(drill){payload.hole_count=holes;payload.production_type=$('pType').value||null;}
    else{payload.material_type=$('pMaterial').value.trim()||null;}
