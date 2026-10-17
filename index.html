@@ -42,6 +42,102 @@ button{background:#1b1b1b;color:var(--orange);border:1px solid #4b4b4b;border-ra
 "use strict";
 const SUPABASE_URL = "https://vchffwfkqcscyjwjrwge.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_sxW6qob3dT2O1vrCTBxZVw_6zs5HZTN";
+const STATUS_GROUPS = [
+  [
+    "Төлөвлөгөөний дагуу ажиллахгүй | ЭЦС",
+    "Бэлэн нөөцөнд зогсож байна | ЭЦС",
+    "Амралт цайны цаг | ЭЦС",
+    "Түлш авах хугацаа | ЭЦС",
+    "Унтлагын цаг | ЭЦС",
+    "Ээлж солилцох | ЭЦС",
+    "Усан хангамж | ЭЦС",
+    "Цайны цаг хэтрэлт | ЭЦС",
+    "Түлш авах хугацаа хэтрэлт | ЭЦС",
+    "Унтлагын цаг хэтрэлт | ЭЦС",
+    "Ээлж солилцох хэтрэлт | ЭЦС",
+    "Ус хангамж хэтрэлт | ЭЦС",
+    "Тэсэлгээний хугацаа хэтрэлт | ЭЦС",
+    "Б Бүтээлтэй | ЭЦС"
+  ],
+  [
+    "Операторын тойрох үзлэг | ЭЦС",
+    "Операторын гэнэтийн үзлэг | ЭЦС",
+    "Тэсэлгээнээс шалтгаалсан нүүдэл | ЭЦС",
+    "Хувийн цаг | ЭЦС",
+    "Уул технологийн хүндрэл | ЭЦС",
+    "Хорших техник дутагдалтай | ЭЦС",
+    "Ажиллах талбайгүй | ЭЦС",
+    "Ачуулах экскаватороо хүлээсэн | ЭЦС",
+    "Ажиллах хүнгүй | ЭЦС",
+    "Операторгүй | ЭЦС",
+    "Операторын бие муудсан | ЭЦС",
+    "Оператор сургалтанд суусан | ЭЦС",
+    "Экскаваторт гэнэтийн эвдрэл гарсан | ЭЦС",
+    "Инженерийн ажил | ЭЦС",
+    "Ул түрэх, ажлын талбай бэлдэх | ЭЦС",
+    "Маркшейдер шалтгаалсан зогсолт | ЭЦС",
+    "Геологи шалтгаалсан зогсолт | ЭЦС",
+    "Цахилгааны зөөвөр нүүдэл | ЭЦС",
+    "Мөргөцөг хоорондын шилжилт хөдөлгөөн | ЭЦС",
+    "Якно зөөвөрлөх | ЭЦС"
+  ],
+  [
+    "IT Хүлээлт | ЭЦС",
+    "Түргэн элэгдэх гэнэтийн | ЭЦС",
+    "Экскаватор Төлөвлөгөөт засварт зогссон | ЭЦС",
+    "Механик хүлээлт | ЭЦС",
+    "Цахилгаанчин хүлээлт | ЭЦС",
+    "Механик гэнэтийн үзлэг | ЭЦС",
+    "Тосолгоо хүлээлт | ЭЦС",
+    "Станц харилцаа холбооны гэмтэл завсар | ЭЦС",
+    "Цахилгаан систем | ЭЦС",
+    "Сэлбэг хүлээлт | ЭЦС",
+    "Гидрийн систем | ЭЦС",
+    "Гидрийн шланк | ЭЦС",
+    "Гидрийн цилиндр | ЭЦС",
+    "Засвар хүлээгдэж байгаа | ЭЦС",
+    "Засварчин хүрэлцээгүй | ЭЦС",
+    "Хөдөлгүүр засвар | ЭЦС",
+    "Тормозны систем | ЭЦС",
+    "Хүч дамжуулах анги | ЭЦС",
+    "Хөргөлт, халаалтын систем | ЭЦС",
+    "Гагнуурын ажил | ЭЦС",
+    "Явах анги | ЭЦС",
+    "Хийн систем Бусад | ЭЦС",
+    "Дугуй | ЭЦС",
+    "Түлшний систем | ЭЦС",
+    "Тосолгооны систем | ЭЦС",
+    "Гэрээт гэнэтийн үзлэг | ЭЦС",
+    "Засвар цаг хэтрэлт/ мото.цаг/ | ЭЦС",
+    "Асаалтын систем | ЭЦС",
+    "Усны систем | ЭЦС",
+    "Агаарын систем | ЭЦС",
+    "Ажлын багаж | ЭЦС",
+    "Удирдлагын систем | ЭЦС",
+    "Кабин засвар | ЭЦС",
+    "Шат тавцан | ЭЦС",
+    "Цамхагийн засвар | ЭЦС",
+    "Механик төлөвлөгөөт үзлэг | ЭЦС",
+    "Техник үйлчилгээ (мот.цаг) | ЭЦС",
+    "Гэрээт компани засвар | ЭЦС",
+    "Тосолгоо үйлчилгээ тос масло нэмэх | ЭЦС",
+    "Төлөвлөгөөт түргэн элэгдэх | ЭЦС"
+  ],
+  [
+    "Сэлбэггүй зогссон | ЭЦС",
+    "Хангамжаас шалтгаалсан | ЭЦС",
+    "Түлш, тосгүй | ЭЦС",
+    "Цаг агаарын саатал, хүндрэл | ЭЦС",
+    "Захиргааны шийдвэрээр зогсоосон сул зогсолт | ЭЦС",
+    "Өөр төсөлд ажиллах | ЭЦС",
+    "Цахилгаан тасралт Төвийн шугам | ЭЦС",
+    "Дэд бүтэцийн цахилгааны гэмтэл Өндрийн | ЭЦС",
+    "Үйлчилгээний машин дутагдалтай | ЭЦС",
+    "Улсын байгууллага хяналт шалгалт | ЭЦС"
+  ]
+];
+const PRODUCTIVE_STATUS = "Б Бүтээлтэй | ЭЦС";
+function operatorRequired(status){const group=STATUS_GROUPS.findIndex(g=>g.includes(status));return group!==2 && group!==3;}
 const EDITOR_ROLES = new Set(["event_editor","master","dispatcher","management","admin"]);
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let currentUser = null, currentTab = "events", equipment = [], statusNames = [], events = [], production = [], editing = null, toastTimer = null;
@@ -73,7 +169,7 @@ async function loadData(){hideError('loadError');$('results').innerHTML='<p clas
   sb.from('production_logs').select('*').order('created_at',{ascending:false}).limit(2000)
  ]);
  if(eqR.error)throw new Error('equipment унших алдаа: '+eqR.error.message);
- equipment=eqR.data||[];statusNames=(stR.data||[]).map(x=>x.name).filter(name=>typeof name==='string' && name.trim().endsWith('| ЭЦС'));
+ equipment=eqR.data||[];statusNames=[...new Set([...((stR.data||[]).map(x=>x.name).filter(name=>typeof name==='string' && name.trim().endsWith('| ЭЦС'))),PRODUCTIVE_STATUS])];
  const fails=[];if(evR.error)fails.push('Төлөвийн хүснэгт: '+evR.error.message);if(prR.error)fails.push('Бүтээлийн хүснэгт: '+prR.error.message);
  events=evR.data||[];production=prR.data||[];
  if(fails.length)showError('loadError',fails.join('\n')+'\nRLS SELECT policy болон хүснэгтийн нэрийг шалгана уу.');
@@ -93,8 +189,29 @@ function renderResults(){const rows=filteredRows();const shown=rows.slice(0,300)
 function eventCard(r){const ended=r.end_time?fmtDate(r.end_time):'Одоог хүртэл (нээлттэй)';return `<article class="entry"><div><strong>${esc(eqName(r.equipment_id))} · ${esc(r.status||'Төлөвгүй')}</strong><div class="meta">Эхэлсэн: ${esc(fmtDate(r.start_time))} · Дууссан: ${esc(ended)}</div><div class="meta">Оператор: ${esc(r.operator_name||'—')} · SMU: ${esc(r.smu??'—')} · KM: ${esc(r.km??'—')}</div>${r.comment?`<div class="meta">Тайлбар: ${esc(r.comment)}</div>`:''}<span class="badge">ID: ${esc(r.id??'ID алга')}</span></div><div class="actions"><button data-edit="event" data-id="${esc(r.id)}" ${r.id==null?'disabled':''}>Засах</button></div></article>`;}
 function productionCard(r){return `<article class="entry"><div><strong>${esc(eqName(r.equipment_id))} · ${esc(r.amount??'—')} ${esc(r.measure_type||'')}</strong><div class="meta">Огноо: ${esc(r.production_date||'—')} · Цаг: ${esc(r.hour_slot==null?'—':String(r.hour_slot).padStart(2,'0')+':00')}</div><div class="meta">Ажлын төрөл: ${esc(r.production_type||'—')} · Цооног: ${esc(r.hole_count??'—')} · Материал: ${esc(r.material_type||'—')}</div>${r.comment?`<div class="meta">Тайлбар: ${esc(r.comment)}</div>`:''}<span class="badge">ID: ${esc(r.id??'ID алга')}</span></div><div class="actions"><button data-edit="production" data-id="${esc(r.id)}" ${r.id==null?'disabled':''}>Засах</button></div></article>`;}
 function findCurrent(type,id){const arr=type==='event'?events:production;return arr.find(r=>String(r.id)===String(id));}
-function startEdit(type,id){const r=findCurrent(type,id);if(!r)return tell('Засах мөр олдсонгүй. Дахин шинэчилнэ үү.',true);editing={type,row:r};type==='event'?renderEventEditor(r):renderProductionEditor(r);$('editor').classList.remove('hidden');$('editor').scrollIntoView({behavior:'smooth',block:'start'});}
-function renderEventEditor(r){const states=statusNames;$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Төлөв засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Техник өөрчлөхгүй. Эхлэл/төгсгөлийн цаг, төлөв болон бусад мэдээллийг шалгана уу.</p><form id="editEventForm"><div class="formrow"><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label><label>Төлөв<select id="eStatus" required>${opts(states,r.status)}</select></label><label>Эхэлсэн цаг<input id="eStart" type="datetime-local" value="${esc(toLocalInput(r.start_time))}" required></label><label>Дууссан цаг<input id="eEnd" type="datetime-local" value="${esc(toLocalInput(r.end_time))}"><span class="subtle">Хоосон бол нээлттэй төлөв гэж үзнэ.</span></label><label>Оператор<input id="eOperator" value="${esc(r.operator_name||'')}"></label><label>SMU / мотоцаг<input id="eSmu" type="number" min="0" step="0.1" value="${esc(r.smu??'')}"></label><label>KM<input id="eKm" type="number" min="0" step="0.1" value="${esc(r.km??'')}"></label></div><label>Тайлбар<textarea id="eComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
+function startEdit(type,id){const r=findCurrent(type,id);if(!r)return tell('Засах мөр олдсонгүй. Дахин шинэчилнэ үү.',true);editing={type,row:r};type==='event'?renderEventEditor(r):renderProductionEditor(r);if(type==='event'){refreshOperatorRequirement();filterEditStatuses();}$('editor').classList.remove('hidden');$('editor').scrollIntoView({behavior:'smooth',block:'start'});}
+function renderEventEditor(r){const states=statusNames;$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Төлөв засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Техник өөрчлөхгүй. Эхлэл/төгсгөлийн цаг, төлөв болон бусад мэдээллийг шалгана уу.</p><form id="editEventForm"><div class="formrow"><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label><label>Төлөв<input id="eStatusSearch" type="search" placeholder="Төлөвийн нэрээр хайх..." autocomplete="off"><select id="eStatus" required>${opts(states,r.status)}</select><span id="eStatusCount" class="subtle"></span></label><label>Эхэлсэн цаг<input id="eStart" type="datetime-local" value="${esc(toLocalInput(r.start_time))}" required></label><label>Дууссан цаг<input id="eEnd" type="datetime-local" value="${esc(toLocalInput(r.end_time))}"><span class="subtle">Хоосон бол нээлттэй төлөв гэж үзнэ.</span></label><label>Оператор<input id="eOperator" value="${esc(r.operator_name||'')}"><span id="eOperatorHint" class="subtle"></span></label><label>SMU / мотоцаг<input id="eSmu" type="number" min="0" step="0.1" value="${esc(r.smu??'')}"></label><label>KM<input id="eKm" type="number" min="0" step="0.1" value="${esc(r.km??'')}"></label></div><label>Тайлбар<textarea id="eComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
+function refreshOperatorRequirement(){
+ const status=$('eStatus')?.value||'';
+ const required=operatorRequired(status);
+ const input=$('eOperator');
+ if(!input)return;
+ input.required=required;
+ $('eOperatorHint').textContent=required?'Заавал бөглөнө.':'Эвдрэл/хангамжийн төлөв: хоосон байж болно.';
+}
+function filterEditStatuses(){
+ const select=$('eStatus'), search=$('eStatusSearch');
+ if(!select||!search)return;
+ const selected=select.value, q=search.value.trim().toLocaleLowerCase();
+ const filtered=statusNames.filter(x=>x.toLocaleLowerCase().includes(q));
+ // Keep the current selection available while typing; do not silently change it.
+ const visible=[...new Set([...filtered,selected].filter(Boolean))];
+ select.innerHTML=opts(visible,selected);
+ $('eStatusCount').textContent=filtered.length+' төлөв олдлоо';
+ refreshOperatorRequirement();
+}
+$('editor').addEventListener('input',e=>{if(e.target.id==='eStatusSearch')filterEditStatuses();});
+$('editor').addEventListener('change',e=>{if(e.target.id==='eStatus')refreshOperatorRequirement();});
 function renderProductionEditor(r){const units=['тоо','рейс','тууш метр'];const types=['Өрмийн бүтээл','Сэргээлт'];$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Бүтээл засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Өөрчлөлт нь одоо байгаа бүтээлийн мөрөнд хадгалагдана. Операторын талбарыг үндсэн аппын тохиргооны дагуу энд харуулахгүй.</p><form id="editProductionForm"><div class="formrow"><label>Огноо<input id="pDate" type="date" value="${esc(r.production_date||'')}" required></label><label>Цаг<select id="pHour" required>${Array.from({length:24},(_,i)=>`<option value="${i}"${Number(r.hour_slot)===i?' selected':''}>${String(i).padStart(2,'0')}:00–${String((i+1)%24).padStart(2,'0')}:00</option>`).join('')}</select></label><label>Техник<select id="pEquipment" required>${equipment.map(x=>`<option value="${esc(x.id)}"${String(x.id)===String(r.equipment_id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label><label>Бүтээлийн хэмжээ<input id="pAmount" type="number" min="0" step="0.1" value="${esc(r.amount??'')}" required></label><label>Хэмжих нэгж<select id="pMeasure">${opts(units,r.measure_type)}</select></label><label>Цооногийн тоо<input id="pHoles" type="number" min="0" step="1" value="${esc(r.hole_count??'')}"></label><label>Ажлын төрөл<select id="pType">${opts(types,r.production_type)}</select></label><label>Ачуулсан экскаватор<select id="pDump"><option value="">— Сонгохгүй —</option>${equipment.map(x=>`<option value="${esc(x.id)}"${String(x.id)===String(r.dump_equipment_id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label><label>Материалын төрөл<input id="pMaterial" value="${esc(r.material_type||'')}"></label></div><label>Тайлбар<textarea id="pComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
 function findEventOverlaps(row,start,end){
  const a=new Date(start).getTime(), b=end?new Date(end).getTime():Infinity;
@@ -111,7 +228,8 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
  if(type==='event'){
   const start=localInputToISO($('eStart').value),end=localInputToISO($('eEnd').value);if(!start)throw new Error('Эхэлсэн цагийг зөв оруулна уу.');if(end&&new Date(end)<new Date(start))throw new Error('Дууссан цаг эхэлсэн цагаас өмнө байж болохгүй.');
   const smu=numOrNull($('eSmu').value),km=numOrNull($('eKm').value);if(smu!==null&&(!Number.isFinite(smu)||smu<0))throw new Error('SMU утга буруу байна.');if(km!==null&&(!Number.isFinite(km)||km<0))throw new Error('KM утга буруу байна.');
-  const payload={status:$('eStatus').value,start_time:start,end_time:end,operator_name:$('eOperator').value.trim()||null,smu,km,comment:$('eComment').value.trim()||null};
+  if(operatorRequired($('eStatus').value)&&!$('eOperator').value.trim())throw new Error('Энэ төлөв дээр операторын нэр заавал оруулна уу.');
+   const payload={status:$('eStatus').value,start_time:start,end_time:end,operator_name:$('eOperator').value.trim()||null,smu,km,comment:$('eComment').value.trim()||null};
   const overlaps=findEventOverlaps(row,start,end);
   let neighbor=null, neighborEnd=null;
   if(overlaps.length){
