@@ -30,11 +30,11 @@ button{background:#1b1b1b;color:var(--orange);border:1px solid #4b4b4b;border-ra
 </section>
 <section id="appView" class="hidden">
   <div class="notice">Бүртгэлийн мөрийг засахад хуучин мөрийн <b>id</b>-г ашиглан шинэчилнэ. Устгах үйлдэл байхгүй.</div>
-  <div class="tabs"><button data-tab="events" class="active">Төлөв засах</button><button data-tab="production">Бүтээл засах</button><button id="refreshBtn">↻ Шинэчлэх</button></div>
+  <div class="tabs"><button data-tab="events" class="active">Төлөв засах</button><button data-tab="production">Бүтээл засах</button><button id="addEventButton" type="button">＋ Төлөв нэмэх</button><button id="refreshBtn">↻ Шинэчлэх</button></div>
   <section id="filters" class="panel"><div class="row"><label>Огноо<input id="filterDate" type="date"></label><label id="filterHourWrap" class="hidden">Цаг<select id="filterHour"><option value="">Бүх цаг</option></select></label><label>Техник<select id="filterEquipment"><option value="">Бүх техник</option></select></label><label>Хайх<input id="filterText" type="search" placeholder="Төлөв, оператор, тайлбар..."></label><label>Эх сурвалж<span class="subtle" style="display:block;margin-top:8px">Сүүлийн татсан бүртгэлээс хайна.</span></label></div></section>
   <div id="loadError" class="error hidden"></div>
   <section id="results" class="panel"></section>
-  <section id="editor" class="panel hidden"></section>
+  <section id="newEventPanel" class="panel hidden"></section><section id="editor" class="panel hidden"></section>
   <p class="footer">MAK загвар · Үндсэн Data Event аппын файлыг өөрчлөхгүй. Нэвтрэлт, өгөгдлийн сангийн RLS бодлого Supabase дээр зөв тохирсон байх ёстой.</p>
 </section>
 </main><div id="toast" class="toaster"></div>
@@ -207,7 +207,7 @@ function renderResults(){const rows=filteredRows();const shown=rows.slice(0,300)
  html+=shown.map(r=>currentTab==='events'?eventCard(r):productionCard(r)).join('');
  if(rows.length>300)html+='<p class="subtle">Эхний 300 мөрийг харууллаа. Хайлтаа нарийсгана уу.</p>';
  $('results').innerHTML=html;}
-function eventCard(r){const ended=r.end_time?fmtDate(r.end_time):'Одоог хүртэл (нээлттэй)';return `<article class="entry"><div><strong>${esc(eqName(r.equipment_id))} · ${esc(r.status||'Төлөвгүй')}</strong><div class="meta">Эхэлсэн: ${esc(fmtDate(r.start_time))} · Дууссан: ${esc(ended)}</div><div class="meta">Оператор: ${esc(r.operator_name||'—')} · SMU: ${esc(r.smu??'—')} · KM: ${esc(r.km??'—')}</div>${r.comment?`<div class="meta">Тайлбар: ${esc(r.comment)}</div>`:''}<span class="badge">ID: ${esc(r.id??'ID алга')}</span></div><div class="actions"><button data-edit="event" data-id="${esc(r.id)}" ${r.id==null?'disabled':''}>Засах</button></div></article>`;}
+function eventCard(r){const ended=r.end_time?fmtDate(r.end_time):'Одоог хүртэл (нээлттэй)';return `<article class="entry"><div><strong>${esc(eqName(r.equipment_id))} · ${esc(r.status||'Төлөвгүй')}</strong><div class="meta">Эхэлсэн: ${esc(fmtDate(r.start_time))} · Дууссан: ${esc(ended)}</div><div class="meta">Оператор: ${esc(r.operator_name||'—')} · SMU: ${esc(r.smu??'—')} · KM: ${esc(r.km??'—')}</div>${r.comment?`<div class="meta">Тайлбар: ${esc(r.comment)}</div>`:''}<span class="badge">ID: ${esc(r.id??'ID алга')}</span></div><div class="actions"><button data-edit="event" data-id="${esc(r.id)}" ${r.id==null?'disabled':''}>Засах</button>${r.end_time?`<button type="button" data-add-gap="${esc(r.id)}">Дараах завсарт нэмэх</button>`:""}</div></article>`;}
 function productionCard(r){
  const drill=isDrillProduction(r);
  const qty=drill?`${esc(r.amount??'—')} тууш метр`:`${esc(r.amount??'—')} рейс`;
@@ -328,6 +328,109 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
 function switchTab(tab){currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();setupHourFilter();populateEquipmentFilter();renderResults();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 ['filterDate','filterHour','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',renderResults));$('refreshBtn').addEventListener('click',loadData);
+// Historical additions only. Never shortens or updates an existing record.
+let newEventBusy=false, newEventUncertain=false;
+function historicalISO(value){
+ if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?$/.test(value||''))throw Error('Огноо, цагийг бүрэн оруулна уу.');
+ const iso=new Date(value+'+08:00');
+ if(!Number.isFinite(iso.getTime()))throw Error('Огноо буруу байна.');
+ const normalized=new Date(iso.getTime()+8*3600000).toISOString().slice(0,16);
+ if(normalized!==value.slice(0,16))throw Error('Огноо, цаг буруу байна.');
+ return iso.toISOString();
+}
+function historicalInput(iso){return iso?new Date(Date.parse(iso)+8*3600000).toISOString().slice(0,23):'';}
+function validateNewEvent(input,now=Date.now()){
+ if(!equipment.some(x=>String(x.id)===String(input.equipment_id)))throw Error('Техникээ сонгоно уу.');
+ if(!statusNames.includes(input.status))throw Error('Жагсаалтаас төлөвөө сонгоно уу.');
+ const start_time=historicalISO(input.start),end_time=historicalISO(input.end);
+ if(Date.parse(end_time)<=Date.parse(start_time))throw Error('Дуусах цаг эхлэх цагаас хойш байх ёстой.');
+ if(Date.parse(end_time)>now)throw Error('Дууссан түүхэн бүртгэл нэмнэ. Ирээдүйн цаг оруулахгүй.');
+ const operator_name=String(input.operator||'').trim();
+ if(operatorRequired(input.status)&&!operator_name)throw Error('Энэ төлөвт оператор заавал оруулна.');
+ const comment=String(input.comment||'').trim();
+ if(!comment)throw Error('Нэмж буй шалтгаан, тайлбарыг бичнэ үү.');
+ const payload={equipment_id:equipment.find(x=>String(x.id)===String(input.equipment_id)).id,status:input.status,start_time,end_time,operator_name:operator_name||null,comment};
+ for(const key of ['smu','km']){
+  const value=String(input[key]??'').trim();payload[key]=value===''?null:Number(value);
+  if(payload[key]!==null&&(!Number.isFinite(payload[key])||payload[key]<0))throw Error(key.toUpperCase()+' утга буруу байна.');
+ }
+ return payload;
+}
+function showNewEvent(defaults={}){
+ if(!canUse())return tell('Нэвтрэх эрхээ шалгана уу.',true);
+ if(newEventUncertain)return tell('Өмнөх нэмэх хүсэлтийн үр дүн тодорхойгүй. Бүртгэлийг шалгаж байж хуудсыг дахин нээнэ үү.',true);
+ closeEditor();
+ const id=defaults.equipment_id??$('filterEquipment').value;
+ $('newEventPanel').innerHTML=`<div class="editor-head"><h2 style="color:var(--orange)">Төлөвийн бүртгэл нэмэх</h2><button type="button" id="closeNewEvent">Хаах</button></div>
+ <p class="subtle">Дутуу хугацаанд дууссан түүхэн бүртгэл нэмнэ. Бүх цаг Монголын UTC+8. Хуучин мөр, одоогийн төлөв, операторын оноолтыг өөрчлөхгүй.</p>
+ <form id="newEventForm"><div class="formrow">
+ <label>Техник<select id="nEquipment" required><option value="">Сонгох</option>${equipment.map(x=>`<option value="${esc(x.id)}"${String(x.id)===String(id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+ <label>Төлөв хайх<input id="nStatusSearch" type="search" placeholder="Төлөвийн нэр"><select id="nStatus" required><option value="">Сонгох</option>${opts(statusNames,'')}</select></label>
+ <label>Эхэлсэн цаг (UTC+8)<input id="nStart" type="datetime-local" step="0.001" value="${esc(historicalInput(defaults.start))}" required></label>
+ <label>Дууссан цаг (UTC+8)<input id="nEnd" type="datetime-local" step="0.001" value="${esc(historicalInput(defaults.end))}" required></label>
+ <label>Оператор<input id="nOperator" value="${esc(defaults.operator||'')}"><span id="nOperatorHint" class="subtle"></span></label>
+ <label>SMU<input id="nSmu" type="number" min="0" step="any"></label><label>KM<input id="nKm" type="number" min="0" step="any"></label></div>
+ <label>Нэмж буй шалтгаан / тайлбар<textarea id="nComment" required></textarea></label><div id="newEventError" class="error hidden"></div>
+ <div class="actions"><button id="saveNewEvent" class="primary" type="submit">Шалгаж нэмэх</button><button type="button" id="cancelNewEvent">Болих</button></div></form>`;
+ $('newEventPanel').classList.remove('hidden');$('newEventPanel').scrollIntoView({behavior:'smooth',block:'start'});refreshNewOperator();
+}
+function refreshNewOperator(){const required=operatorRequired($('nStatus').value);$('nOperator').required=required;$('nOperatorHint').textContent=required?'Оператор заавал оруулна.':'Засвар/хангамжийн төлөвт хоосон байж болно.';}
+async function getNewEventConflict(payload){
+ const {data,error}=await sb.from('equipment_events').select('id,status,start_time,end_time')
+ .eq('equipment_id',payload.equipment_id).lt('start_time',payload.end_time)
+ .or('end_time.is.null,end_time.gt.'+payload.start_time).order('start_time',{ascending:true}).limit(1);
+ if(error)throw Error('Серверээс давхцлыг шалгаж чадсангүй: '+error.message);
+ return data?.[0]||null;
+}
+async function addAfterEvent(id){
+ try{
+  if(!canUse())throw Error('Нэвтэрнэ үү.');
+  const row=events.find(x=>String(x.id)===String(id));if(!row?.end_time)throw Error('Энэ мөр дуусах цаггүй байна.');
+  const {data,error}=await sb.from('equipment_events').select('id,start_time')
+   .eq('equipment_id',row.equipment_id).gte('start_time',row.end_time).order('start_time',{ascending:true}).limit(1);
+  if(error)throw error;
+  const next=data?.[0];if(!next)throw Error('Дараагийн төлөв олдсонгүй. “Төлөв нэмэх”-ээр хугацааг гараар сонгоно уу.');
+  if(Date.parse(next.start_time)<=Date.parse(row.end_time))throw Error('Энэ мөрийн дараа хугацааны завсар алга.');
+  showNewEvent({equipment_id:row.equipment_id,start:row.end_time,end:next.start_time,operator:row.operator_name});
+ }catch(e){tell(e.message||String(e),true);}
+}
+document.addEventListener('click',e=>{
+ if(e.target.closest('#addEventButton'))showNewEvent();
+ const gap=e.target.closest('[data-add-gap]');if(gap)addAfterEvent(gap.dataset.addGap);
+ if(e.target.closest('#closeNewEvent,#cancelNewEvent')&&!newEventBusy)$('newEventPanel').classList.add('hidden');
+});
+$('newEventPanel').addEventListener('change',e=>{if(e.target.id==='nStatus')refreshNewOperator();});
+$('newEventPanel').addEventListener('input',e=>{
+ if(e.target.id!=='nStatusSearch')return;
+ const selected=$('nStatus').value,q=e.target.value.trim().toLocaleLowerCase();
+ $('nStatus').innerHTML='<option value="">Сонгох</option>'+opts(statusNames.filter(x=>x.toLocaleLowerCase().includes(q)),selected);$('nStatus').value=selected;
+});
+$('newEventPanel').addEventListener('submit',async e=>{
+ e.preventDefault();if(newEventBusy||newEventUncertain)return;
+ newEventBusy=true;const button=$('saveNewEvent');button.disabled=true;hideError('newEventError');let insertAttempted=false,inserted=false;
+ try{
+  if(!canUse())throw Error('Нэвтрэх эрхээ шалгана уу.');
+  const payload=validateNewEvent({equipment_id:$('nEquipment').value,status:$('nStatus').value,start:$('nStart').value,end:$('nEnd').value,operator:$('nOperator').value,comment:$('nComment').value,smu:$('nSmu').value,km:$('nKm').value});
+  let conflict=await getNewEventConflict(payload);
+  if(conflict)throw Error('ID '+conflict.id+' бүртгэлтэй давхцаж байна. Хуучин мөрийг өөрчилсөнгүй.');
+  const minutes=(Date.parse(payload.end_time)-Date.parse(payload.start_time))/60000;
+  if(!confirm(eqName(payload.equipment_id)+'\n'+payload.status+'\n'+historicalInput(payload.start_time).replace('T',' ')+' – '+historicalInput(payload.end_time).replace('T',' ')+' (UTC+8)\n'+minutes.toFixed(3)+' минут\nОператор: '+(payload.operator_name||'—')+'\nТайлбар: '+payload.comment+'\n\nШИНЭ бүртгэл нэмэх үү?'))return;
+  // Recheck after the confirmation. Database constraints remain authoritative.
+  conflict=await getNewEventConflict(payload);if(conflict)throw Error('Шалгах хооронд ID '+conflict.id+' бүртгэл нэмэгдсэн байна. Хадгалсангүй.');
+  insertAttempted=true;
+  const {data,error}=await sb.from('equipment_events').insert(payload).select('id').single();
+  if(error)throw error;
+  inserted=true;$('newEventPanel').classList.add('hidden');tell('Шинэ төлөв нэмэгдлээ. ID: '+data.id);
+  $('filterDate').value=historicalInput(payload.start_time).slice(0,10);currentTab='events';
+  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));
+  await loadData();$('filterEquipment').value=String(payload.equipment_id);renderResults();
+ }catch(err){
+  if(insertAttempted&&!inserted){newEventUncertain=true;showError('newEventError','Нэмэх хүсэлт алдаатай хариуллаа. Давтан нэмэхээс өмнө “Шинэчлэх” дарж тухайн хугацааг шалгана уу. '+(err.message||String(err)));}
+  else if(inserted)tell('Бүртгэл нэмэгдсэн. Жагсаалтыг шинэчлэхэд алдаа гарлаа.',true);
+  else showError('newEventError',err.message||String(err));
+ }finally{newEventBusy=false;button.disabled=newEventUncertain;}
+});
+
 checkSession();
 </script>
 </body>
