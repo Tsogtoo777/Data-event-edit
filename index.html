@@ -217,8 +217,8 @@ function productionCard(r){
  return `<article class="entry"><div><strong>${esc(eqName(r.equipment_id))} · ${qty}</strong><div class="meta">Огноо: ${esc(r.production_date||'—')} · Цаг: ${esc(r.hour_slot==null?'—':String(r.hour_slot).padStart(2,'0')+':00')}</div><div class="meta">${detail}</div><div class="meta">Бүтээлд хадгалсан Блок / Түвшин: ${esc(r.block_code||'Бүртгэлгүй')} / ${esc(r.level_name||'Бүртгэлгүй')}</div>${r.comment?`<div class="meta">Тайлбар: ${esc(r.comment)}</div>`:''}<span class="badge">ID: ${esc(r.id??'ID алга')}</span></div><div class="actions"><button data-edit="production" data-id="${esc(r.id)}" ${r.id==null?'disabled':''}>Засах</button></div></article>`;
 }
 function findCurrent(type,id){const arr=type==='event'?events:production;return arr.find(r=>String(r.id)===String(id));}
-function startEdit(type,id){const r=findCurrent(type,id);if(!r)return tell('Засах мөр олдсонгүй. Дахин шинэчилнэ үү.',true);if(type==='production'&&!productionEquipmentKind(equipment.find(e=>String(e.id)===String(r.equipment_id))))return tell('Бүтээл засах хэсэг зөвхөн БелАЗ болон Өрөмд зориулагдсан.',true);editing={type,row:r};type==='event'?renderEventEditor(r):renderProductionEditor(r);if(type==='event'){refreshOperatorRequirement();filterEditStatuses();}$('editor').classList.remove('hidden');$('editor').scrollIntoView({behavior:'smooth',block:'start'});}
-function renderEventEditor(r){const states=statusNames;$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Төлөв засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Техник өөрчлөхгүй. Эхлэл/төгсгөлийн цаг, төлөв болон бусад мэдээллийг шалгана уу.</p><form id="editEventForm"><div class="formrow"><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label><label>Төлөв<input id="eStatusSearch" type="search" placeholder="Төлөвийн нэрээр хайх..." autocomplete="off"><select id="eStatus" required>${opts(states,r.status)}</select><span id="eStatusCount" class="subtle"></span></label><label>Эхэлсэн цаг<input id="eStart" type="datetime-local" value="${esc(toLocalInput(r.start_time))}" required></label><label>Дууссан цаг<input id="eEnd" type="datetime-local" value="${esc(toLocalInput(r.end_time))}"><span class="subtle">Хоосон бол нээлттэй төлөв гэж үзнэ.</span></label><label>Оператор<input id="eOperator" value="${esc(r.operator_name||'')}"><span id="eOperatorHint" class="subtle"></span></label><label>SMU / мотоцаг<input id="eSmu" type="number" min="0" step="0.1" value="${esc(r.smu??'')}"></label><label>KM<input id="eKm" type="number" min="0" step="0.1" value="${esc(r.km??'')}"></label></div><label>Тайлбар<textarea id="eComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
+function startEdit(type,id){const r=findCurrent(type,id);if(!r)return tell('Засах мөр олдсонгүй. Дахин шинэчилнэ үү.',true);if(type==='production'&&!productionEquipmentKind(equipment.find(e=>String(e.id)===String(r.equipment_id))))return tell('Бүтээл засах хэсэг зөвхөн БелАЗ болон Өрөмд зориулагдсан.',true);editing={type,row:r};type==='event'?renderEventEditor(r):renderProductionEditor(r);if(type==='event'){refreshOperatorRequirement();filterEditStatuses();previewEditContinuity();}$('editor').classList.remove('hidden');$('editor').scrollIntoView({behavior:'smooth',block:'start'});}
+function renderEventEditor(r){const states=statusNames;$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Төлөв засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Техник өөрчлөхгүй. Эхлэл/төгсгөлийн цаг, төлөв болон бусад мэдээллийг шалгана уу.</p><form id="editEventForm"><div class="formrow"><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label><label>Төлөв<input id="eStatusSearch" type="search" placeholder="Төлөвийн нэрээр хайх..." autocomplete="off"><select id="eStatus" required>${opts(states,r.status)}</select><span id="eStatusCount" class="subtle"></span></label><label>Эхэлсэн цаг<input id="eStart" type="datetime-local" value="${esc(historicalInput(r.start_time))}" required></label><label>Дууссан цаг<input id="eEnd" type="datetime-local" value="${esc(historicalInput(r.end_time))}"><span class="subtle">Дараагийн төлөв байвал цагийг автоматаар залгана; байхгүй үед хоосон орхивол нээлттэй.</span></label><label>Оператор<input id="eOperator" value="${esc(r.operator_name||'')}"><span id="eOperatorHint" class="subtle"></span></label><label>SMU / мотоцаг<input id="eSmu" type="number" min="0" step="0.1" value="${esc(r.smu??'')}"></label><label>KM<input id="eKm" type="number" min="0" step="0.1" value="${esc(r.km??'')}"></label></div><label>Тайлбар<textarea id="eComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
 function refreshOperatorRequirement(){
  const status=$('eStatus')?.value||'';
  const required=operatorRequired(status);
@@ -267,30 +267,15 @@ $('results').addEventListener('click',e=>{const b=e.target.closest('[data-edit]'
 $('editEventForm')?.addEventListener('submit',()=>{});
 $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)return;const type=editing.type,row=editing.row,button=$('saveEditBtn');button.disabled=true;button.textContent='Хадгалж байна…';try{
  if(type==='event'){
-  const start=localInputToISO($('eStart').value),end=localInputToISO($('eEnd').value);if(!start)throw new Error('Эхэлсэн цагийг зөв оруулна уу.');if(end&&new Date(end)<new Date(start))throw new Error('Дууссан цаг эхэлсэн цагаас өмнө байж болохгүй.');
+  const {start,end,next}=await computeEditTimes(row,$('eStart').value,$('eEnd').value);
   const smu=numOrNull($('eSmu').value),km=numOrNull($('eKm').value);if(smu!==null&&(!Number.isFinite(smu)||smu<0))throw new Error('SMU утга буруу байна.');if(km!==null&&(!Number.isFinite(km)||km<0))throw new Error('KM утга буруу байна.');
   if(operatorRequired($('eStatus').value)&&!$('eOperator').value.trim())throw new Error('Энэ төлөв дээр операторын нэр заавал оруулна уу.');
    const payload={status:$('eStatus').value,start_time:start,end_time:end,operator_name:$('eOperator').value.trim()||null,smu,km,comment:$('eComment').value.trim()||null};
-  const overlaps=findEventOverlaps(row,start,end);
-  let neighbor=null, neighborEnd=null;
-  if(overlaps.length){
-   // Only the immediately preceding event may be shortened safely.
-   const preceding=overlaps.filter(x=>new Date(x.start_time)<new Date(start));
-   const other=overlaps.filter(x=>!preceding.includes(x));
-   if(preceding.length===1&&other.length===0){
-    neighbor=preceding[0];
-    neighborEnd=new Date(new Date(start).getTime()-1000).toISOString();
-    if(!confirm(`Цаг давхцлаа!\\n${describeOverlap(neighbor)}\\n\\nӨмнөх төлөвийн дуусах цагийг ${fmtDate(neighborEnd)} болгон хамт тохируулах уу?\\n\\nOK = хоёр бүртгэлийг засах; Cancel = буцах (ямар ч өөрчлөлт хадгалахгүй).`))return;
-   }else{
-    throw new Error('Олон эсвэл дараагийн бүртгэлтэй давхцаж байна: '+overlaps.map(describeOverlap).join('; ')+'. Өгөгдлийг хамгаалахын тулд хадгалсангүй. Эхлээд хугацаануудыг тусад нь шалгана уу.');
-   }
+  await checkEditConflict(row,start,end);
+  if(next&&Date.parse(row.end_time||0)!==Date.parse(end)){
+   if(!confirm('ID '+row.id+' төлөвийн дуусах цагийг дараагийн ID '+next.id+'-ийн эхлэл '+historicalInput(end).replace('T',' ')+' (UTC+8)-тай секундээр яг залгаж хадгалах уу?\nХөрш мөрүүдийг өөрчлөхгүй.'))return;
   }
-  // Save the edited row first; if the adjacent update fails, report partial completion explicitly.
-  const {error}=await sb.from('equipment_events').update(payload).eq('id',row.id);if(error)throw error;
-  if(neighbor){
-   const {error:neighborError}=await sb.from('equipment_events').update({end_time:neighborEnd}).eq('id',neighbor.id);
-   if(neighborError)throw new Error('АНХААР: Сонгосон бүртгэл хадгалагдсан боловч өмнөх бүртгэлийн цаг өөрчлөгдсөнгүй! ID '+neighbor.id+': '+neighborError.message+'. Дахин шалгана уу.');
-  }
+  await saveContinuousEvent(row,payload,next);
   // Synchronize the operator shown on the main Data Event equipment card only
   // when this edited event is still the latest open event for that equipment.
   // A historical edit must never replace the currently assigned operator.
@@ -449,6 +434,57 @@ $('newEventPanel').addEventListener('submit',async e=>{
   else showError('newEventError',err.message||String(err));
  }finally{newEventBusy=false;button.disabled=newEventUncertain;}
 });
+
+// Only the selected historical event is updated. Adjacent rows are never moved.
+async function nextEditEvent(row,start){
+ const {data,error}=await sb.from('equipment_events').select('id,start_time')
+  .eq('equipment_id',row.equipment_id).neq('id',row.id).gt('start_time',start)
+  .order('start_time',{ascending:true}).order('id',{ascending:true}).limit(1);
+ if(error)throw Error('Дараагийн төлөвийг уншиж чадсангүй: '+error.message);
+ return data?.[0]||null;
+}
+function exactEditStart(row,value){return value===historicalInput(row.start_time)?row.start_time:historicalISO(value);}
+async function computeEditTimes(row,startValue,endValue){
+ const start=exactEditStart(row,startValue),next=await nextEditEvent(row,start);
+ const end=next?next.start_time:(endValue===''?null:(row.end_time&&endValue===historicalInput(row.end_time)?row.end_time:historicalISO(endValue)));
+ if(end&&Date.parse(end)<=Date.parse(start))throw Error('Дуусах цаг эхлэх цагаас хойш байх ёстой.');
+ return {start,end,next};
+}
+let editPreviewGeneration=0;
+async function previewEditContinuity(){
+ if(!editing||editing.type!=='event'||!$('eStart')||!$('eEnd'))return;
+ const generation=++editPreviewGeneration,row=editing.row,startValue=$('eStart').value;
+ let hint=$('eContinuityHint');
+ if(!hint){hint=document.createElement('span');hint.id='eContinuityHint';hint.className='subtle';$('eEnd').parentElement.append(hint);}
+ hint.textContent='Дараагийн төлөвийн цагийг шалгаж байна…';$('eEnd').readOnly=true;
+ try{
+  const result=await computeEditTimes(row,startValue,$('eEnd').value);
+  if(generation!==editPreviewGeneration||!editing||String(editing.row.id)!==String(row.id)||!$('eEnd'))return;
+  $('eEnd').readOnly=!!result.next;
+  if(result.next){$('eEnd').value=historicalInput(result.end);hint.textContent='Дараагийн ID '+result.next.id+' төлөвийн эхлэх цагтай секундээр яг залгана. Хадгалах хүртэл бүртгэл өөрчлөгдөхгүй.';}
+  else hint.textContent='Дараагийн төлөв олдсонгүй. Дуусах цагийг гараар оруулж болно. Хоосон бол нээлттэй хэвээр.';
+ }catch(e){if(generation===editPreviewGeneration&&$('eContinuityHint'))$('eContinuityHint').textContent=e.message;}
+}
+async function checkEditConflict(row,start,end){
+ let query=sb.from('equipment_events').select('id,status,start_time,end_time')
+  .eq('equipment_id',row.equipment_id).neq('id',row.id).or('end_time.is.null,end_time.gt.'+start);
+ if(end)query=query.lt('start_time',end);
+ const {data,error}=await query.order('start_time',{ascending:true}).limit(1);
+ if(error)throw Error('Давхцлыг серверээс шалгаж чадсангүй: '+error.message);
+ if(data?.length)throw Error('ID '+data[0].id+' бүртгэлтэй давхцаж байна. Хөрш бүртгэлийг автоматаар өөрчилсөнгүй.');
+}
+async function saveContinuousEvent(row,payload,next){
+ if(!canUse())throw Error('Нэвтрэх эрхээ шалгана уу.');
+ const currentNext=await nextEditEvent(row,payload.start_time);
+ if(String(currentNext?.id??'')!==String(next?.id??'')||Date.parse(currentNext?.start_time||0)!==Date.parse(next?.start_time||0))throw Error('Дараагийн төлөв өөрчлөгдсөн байна. Дахин нээж шалгана уу.');
+ await checkEditConflict(row,payload.start_time,payload.end_time);
+ let query=sb.from('equipment_events').update(payload).eq('id',row.id).eq('start_time',row.start_time).eq('status',row.status);
+ query=row.end_time?query.eq('end_time',row.end_time):query.is('end_time',null);
+ const {data,error}=await query.select('id').maybeSingle();
+ if(error)throw error;
+ if(!data)throw Error('Энэ мөр өөрчлөгдсөн эсвэл засах эрх хүрэхгүй байна. Жагсаалтаа шинэчлээд дахин шалгана уу.');
+}
+$('editor').addEventListener('change',e=>{if(e.target.id==='eStart')previewEditContinuity();});
 
 checkSession();
 </script>
