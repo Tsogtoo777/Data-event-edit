@@ -17,6 +17,7 @@ button{background:#1b1b1b;color:var(--orange);border:1px solid #4b4b4b;border-ra
 .entry{border:1px solid var(--line);border-radius:11px;padding:12px;margin:8px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}.entry strong{color:var(--orange);display:block;margin-bottom:4px}.meta{color:var(--muted);font-size:13px;overflow-wrap:anywhere}.badge{display:inline-block;padding:3px 7px;border-radius:6px;background:#342116;color:#ffc39e;font-size:12px;margin:2px 4px 2px 0}.editor-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.hidden{display:none!important}.count{color:var(--muted);font-size:13px}.footer{color:#8e8179;font-size:12px;margin:18px 0}.toaster{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#242424;border:1px solid #555;color:#fff;padding:12px 15px;border-radius:10px;z-index:30;display:none;max-width:calc(100% - 24px);box-shadow:0 5px 24px #0008}.toaster.err{border-color:#a43d3d;color:#ffb8b8}
 @media(max-width:760px){header{padding:11px}main{padding:10px}.row{grid-template-columns:repeat(2,minmax(0,1fr))}.entry{grid-template-columns:minmax(0,1fr)}.entry .actions button{flex:1}.formrow{grid-template-columns:1fr}}@media(max-width:420px){.row{grid-template-columns:1fr}}
 </style>
+<style>[data-edit-operator-box]{display:grid;gap:7px;min-width:0}[data-edit-operator-box] input,[data-edit-operator-box] select{width:100%;box-sizing:border-box;min-width:0}</style>
 </head>
 <body>
 <header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв болон бүтээлийн хуучин бүртгэл засварлах</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
@@ -38,6 +39,18 @@ button{background:#1b1b1b;color:var(--orange);border:1px solid #4b4b4b;border-ra
   <p class="footer">MAK загвар · Үндсэн Data Event аппын файлыг өөрчлөхгүй. Нэвтрэлт, өгөгдлийн сангийн RLS бодлого Supabase дээр зөв тохирсон байх ёстой.</p>
 </section>
 </main><div id="toast" class="toaster"></div>
+<script>(function(root){
+'use strict';
+const norm=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/рс/g,'pc').replace(/[\s/_-]/g,'');
+function family(text){
+ const s=norm(text);
+ for(const [key,re] of [['pc3000',/pc3000/],['pc4000',/pc4000/],['830',/830/],['wa900',/wa900/],['cat16m',/(?:сат|cat)(?:grader|автогрейдер)?16[мm]|автогрейдер|grader/],['dozer',/бульдозер|bulldozer|dozer/]])if(re.test(s))return key;
+ return null;
+}
+function candidates(roster,equipment){const key=family((equipment.name||'')+' '+(equipment.equipment_type||''));return key?roster.filter(x=>family(x.position)===key):[];}
+const api={family,candidates};if(typeof module!=='undefined')module.exports=api;else root.DataEventOperators=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
+</script>
 <script>
 "use strict";
 const SUPABASE_URL = "https://vchffwfkqcscyjwjrwge.supabase.co";
@@ -153,6 +166,32 @@ function localInputToISO(v){if(!v)return null;const d=new Date(v);return Number.
 function fmtDate(v){if(!v)return "—";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString("mn-MN",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});}
 function numOrNull(v){return String(v??"").trim()===""?null:Number(v);}
 function opts(list,val){const all=[...new Set([...(list||[]).filter(x=>x!==null&&x!==undefined&&x!==""), ...(val?[val]:[])])];return all.map(x=>`<option value="${esc(x)}"${String(x)===String(val??"")?" selected":""}>${esc(x)}</option>`).join("");}
+const EDIT_OPERATOR_ROSTER=[{"code": "MAK7219", "name": "Н.Дүүрэнбилэг", "position": "РС-3000 экскаваторын оператор"}, {"code": "ETS2507", "name": "Л.Бат-Өлзий", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0667", "name": "С.Сүлеймен", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0663", "name": "Х.Сүхбаатар", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0662", "name": "П.Номинхаан", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0661", "name": "Д.Зургаанжин", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0660", "name": "Т.Нарантуяа", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0659", "name": "Б.Цогтбаатар", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0651", "name": "Р.Энхтүвшин", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0603", "name": "Б.Мөнхүү", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0496", "name": "Г.Баяртулга", "position": "РС-4000 экскаваторын оператор"}, {"code": "ETS0481", "name": "О.Мөнхцог", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0465", "name": "Т.Баярхүү", "position": "РС-4000 экскаваторын оператор"}, {"code": "ETS0451", "name": "Ж.Гомбо", "position": "WA-900 ачигчийн оператор"}, {"code": "ETS0438", "name": "Ц.Батзолбоо", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0432", "name": "Ц.Батмөнх", "position": "РС-4000 экскаваторын оператор"}, {"code": "ETS0429", "name": "О.Батзориг", "position": "САТ-16М автогрейдерын оператор"}, {"code": "ETS0405", "name": "Д.Баттөр", "position": "WA-900 ачигчийн оператор"}, {"code": "ETS0376", "name": "Ж.Оюунболд", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0358", "name": "Б.Цогтбаяр", "position": "Бульдозерийн оператор"}, {"code": "ETS0354", "name": "Г.Эрдэнэхүү", "position": "Бульдозерийн оператор"}, {"code": "ETS0349", "name": "Т.Хасбаатар", "position": "САТ-16М автогрейдерын оператор"}, {"code": "ETS0346", "name": "Е.Батзул", "position": "WA-900 ачигчийн оператор"}, {"code": "ETS0344", "name": "Ц.Мөнх-Од", "position": "РС-3000 экскаваторын оператор"}, {"code": "ETS0340", "name": "Г.Наранбаатар", "position": "САТ-16М автогрейдерын оператор"}, {"code": "ETS0307", "name": "Ш.Ариунбаяр", "position": "WA-900 ачигчийн оператор"}, {"code": "ETS0289", "name": "С.Саранхүү Эцс", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0247", "name": "Ц.Гантулга", "position": "РС-3000 экскаваторын оператор"}, {"code": "ETS0242", "name": "Э.Батдэлгэр", "position": "РС-3000 экскаваторын оператор"}, {"code": "ETS0239", "name": "Б.Ест-Отгон", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0234", "name": "Д.Бямбатогоо", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0233", "name": "Ж.Бямбаахүү", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0229", "name": "Б.Энх-Орших", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0221", "name": "П.Тэмүүжин", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0218", "name": "Ө.Бавуугарьд", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0217", "name": "П.Мэндбаяр", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0216", "name": "Ө.Түмэнбаяр", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0210", "name": "В.Мягмардорж", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0209", "name": "Б.Энхжаргал", "position": "Бульдозерийн оператор"}, {"code": "ETS0204", "name": "З.Эрдэнэбилэг", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0196", "name": "Ц.Ганзориг", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0194", "name": "О.Гөөгөө", "position": "Бульдозерийн оператор"}, {"code": "ETS0149", "name": "Г.Мөнхсайхан", "position": "Komatsu-830E Автосомасвалын оператор"}, {"code": "ETS0084", "name": "Д.Галмандах", "position": "Автосамосвалын оператор-830 E"}, {"code": "ETS0069", "name": "Б.Бат-Эрдэнэ", "position": "Автосамосвалын оператор-830 E"}];
+function editOperatorField(id,equipmentId,current){
+ const item=equipment.find(x=>String(x.id)===String(equipmentId))||{};const list=DataEventOperators.candidates(EDIT_OPERATOR_ROSTER,item);
+ if(!list.length)return `<span data-edit-operator-box="${esc(id)}"><input id="${esc(id)}" value="${esc(current)}"><small class="subtle">Энэ техникийн оператор Excel жагсаалтад алга. Нэрийг бичиж болно.</small></span>`;
+ return `<span data-edit-operator-box="${esc(id)}"><input type="search" data-edit-operator-search="${esc(id)}" data-equipment="${esc(equipmentId)}" placeholder="Нэр / ажилтны кодоор хайх" autocomplete="off"><select id="${esc(id)}">${editOperatorOptions(list,current,'')}</select><small class="subtle" data-edit-operator-count>${list.length} оператор · албан тушаалаар шүүсэн</small></span>`;
+}
+function editOperatorOptions(list,current,query){
+ const q=query.trim().toLocaleLowerCase(),filtered=list.filter(x=>(x.name+' '+x.code+' '+x.position).toLocaleLowerCase().includes(q));
+ return '<option value="">Оператор сонгох</option>'+(current&&!filtered.some(x=>x.name===current)?`<option selected value="${esc(current)}">${esc(current)} (өмнөх бүртгэл)</option>`:'')+filtered.map(x=>`<option value="${esc(x.name)}"${x.name===current?' selected':''}>${esc(x.name+' · '+x.code)}</option>`).join('');
+}
+document.addEventListener('input',e=>{const input=e.target;if(!input.matches('[data-edit-operator-search]'))return;const box=input.closest('[data-edit-operator-box]'),select=$(input.dataset.editOperatorSearch),item=equipment.find(x=>String(x.id)===String(input.dataset.equipment))||{},list=DataEventOperators.candidates(EDIT_OPERATOR_ROSTER,item),q=input.value.trim().toLocaleLowerCase();select.innerHTML=editOperatorOptions(list,select.value,input.value);box.querySelector('[data-edit-operator-count]').textContent=list.filter(x=>(x.name+' '+x.code+' '+x.position).toLocaleLowerCase().includes(q)).length+' / '+list.length+' оператор';});
+$('newEventPanel').addEventListener('change',e=>{if(e.target.id!=='nEquipment')return;const box=$('nOperator').closest('[data-edit-operator-box]');box.outerHTML=editOperatorField('nOperator',e.target.value,'');refreshNewOperator();});
+async function previousEditEvent(row){
+ const {data,error}=await sb.from('equipment_events').select('id,start_time,end_time')
+ .eq('equipment_id',row.equipment_id).neq('id',row.id).lt('start_time',row.start_time)
+ .order('start_time',{ascending:false}).order('id',{ascending:false}).limit(1);
+ if(error)throw Error('Өмнөх төлөвийг шалгаж чадсангүй: '+error.message);return data?.[0]||null;
+}
+async function validateEditStart(row,start){
+ const originalNext=await nextEditEvent(row,row.start_time),previous=await previousEditEvent(row),a=Date.parse(start),old=Date.parse(row.start_time);
+ if(originalNext&&a>=Date.parse(originalNext.start_time))throw Error('Эхлэх цаг дараагийн төлөвийг давж болохгүй. Бүртгэлийн дарааллыг өөрчлөхгүй.');
+ if(previous?.end_time&&a>old&&a>Math.max(old,Date.parse(previous.end_time)))throw Error('Эхлэх цагийг хойшлуулбал өмнөх төлвөөс хоосон завсар үүснэ. Өмнөх төлөвийн дуусах цагийг шалгана уу.');
+ const gap=previous?.end_time?Math.max(0,(a-Date.parse(previous.end_time))/60000):null;
+ return {originalNext,previous,gap};
+}
+
 function eqName(id){const e=equipment.find(x=>String(x.id)===String(id));return e?e.name:`Техник #${id??"—"}`;}
 // Only haul trucks and drills are production equipment; keep all equipment for event editing.
 function productionEquipmentKind(e){
@@ -218,7 +257,7 @@ function productionCard(r){
 }
 function findCurrent(type,id){const arr=type==='event'?events:production;return arr.find(r=>String(r.id)===String(id));}
 function startEdit(type,id){const r=findCurrent(type,id);if(!r)return tell('Засах мөр олдсонгүй. Дахин шинэчилнэ үү.',true);if(type==='production'&&!productionEquipmentKind(equipment.find(e=>String(e.id)===String(r.equipment_id))))return tell('Бүтээл засах хэсэг зөвхөн БелАЗ болон Өрөмд зориулагдсан.',true);editing={type,row:r};type==='event'?renderEventEditor(r):renderProductionEditor(r);if(type==='event'){refreshOperatorRequirement();filterEditStatuses();previewEditContinuity();}$('editor').classList.remove('hidden');$('editor').scrollIntoView({behavior:'smooth',block:'start'});}
-function renderEventEditor(r){const states=statusNames;$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Төлөв засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Техник өөрчлөхгүй. Эхлэл/төгсгөлийн цаг, төлөв болон бусад мэдээллийг шалгана уу.</p><form id="editEventForm"><div class="formrow"><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label><label>Төлөв<input id="eStatusSearch" type="search" placeholder="Төлөвийн нэрээр хайх..." autocomplete="off"><select id="eStatus" required>${opts(states,r.status)}</select><span id="eStatusCount" class="subtle"></span></label><label>Эхэлсэн цаг<input id="eStart" type="datetime-local" value="${esc(historicalInput(r.start_time))}" required></label><label>Дууссан цаг<input id="eEnd" type="datetime-local" value="${esc(historicalInput(r.end_time))}"><span class="subtle">Дараагийн төлөв байвал цагийг автоматаар залгана; байхгүй үед хоосон орхивол нээлттэй.</span></label><label>Оператор<input id="eOperator" value="${esc(r.operator_name||'')}"><span id="eOperatorHint" class="subtle"></span></label><label>SMU / мотоцаг<input id="eSmu" type="number" min="0" step="0.1" value="${esc(r.smu??'')}"></label><label>KM<input id="eKm" type="number" min="0" step="0.1" value="${esc(r.km??'')}"></label></div><label>Тайлбар<textarea id="eComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
+function renderEventEditor(r){const states=statusNames;$('editor').innerHTML=`<div class="editor-head"><h2 style="margin:0;color:var(--orange)">Төлөв засах · ID ${esc(r.id)}</h2><button data-cancel-edit>Хаах</button></div><p class="subtle">Техник өөрчлөхгүй. Эхлэл/төгсгөлийн цаг, төлөв болон бусад мэдээллийг шалгана уу.</p><form id="editEventForm"><div class="formrow"><label>Техник<input value="${esc(eqName(r.equipment_id))}" disabled></label><label>Төлөв<input id="eStatusSearch" type="search" placeholder="Төлөвийн нэрээр хайх..." autocomplete="off"><select id="eStatus" required>${opts(states,r.status)}</select><span id="eStatusCount" class="subtle"></span></label><label>Эхэлсэн цаг<input id="eStart" type="datetime-local" value="${esc(historicalInput(r.start_time))}" required></label><label>Дууссан цаг<input id="eEnd" type="datetime-local" value="${esc(historicalInput(r.end_time))}"><span class="subtle">Дараагийн төлөв байвал цагийг автоматаар залгана; байхгүй үед хоосон орхивол нээлттэй.</span></label><label>Оператор${editOperatorField('eOperator',r.equipment_id,r.operator_name||'')}<span id="eOperatorHint" class="subtle"></span></label><label>SMU / мотоцаг<input id="eSmu" type="number" min="0" step="0.1" value="${esc(r.smu??'')}"></label><label>KM<input id="eKm" type="number" min="0" step="0.1" value="${esc(r.km??'')}"></label></div><label>Тайлбар<textarea id="eComment">${esc(r.comment||'')}</textarea></label><div class="actions"><button class="primary" type="submit" id="saveEditBtn">Өөрчлөлт хадгалах</button><button type="button" data-cancel-edit>Болих</button></div></form>`;}
 function refreshOperatorRequirement(){
  const status=$('eStatus')?.value||'';
  const required=operatorRequired(status);
@@ -367,7 +406,7 @@ function showNewEvent(defaults={}){
  <label>Төлөв хайх<input id="nStatusSearch" type="search" placeholder="Төлөвийн нэр"><select id="nStatus" required><option value="">Сонгох</option>${opts(statusNames,'')}</select></label>
  <label>Эхэлсэн цаг (UTC+8)<input id="nStart" type="datetime-local" step="60" ${newEventGap?"readonly":""} value="${esc(historicalInput(defaults.start))}" required></label>
  <label>Дууссан цаг (UTC+8)<input id="nEnd" type="datetime-local" step="60" ${newEventGap?"readonly":""} value="${esc(historicalInput(defaults.end))}" required></label>
- <label>Оператор<input id="nOperator" value="${esc(defaults.operator||'')}"><span id="nOperatorHint" class="subtle"></span></label>
+ <label>Оператор${editOperatorField('nOperator',id,defaults.operator||'')}<span id="nOperatorHint" class="subtle"></span></label>
  <label>SMU<input id="nSmu" type="number" min="0" step="any"></label><label>KM<input id="nKm" type="number" min="0" step="any"></label></div>
  <label>Нэмж буй шалтгаан / тайлбар<textarea id="nComment" required></textarea></label><div id="newEventError" class="error hidden"></div>
  <div class="actions"><button id="saveNewEvent" class="primary" type="submit">Шалгаж нэмэх</button><button type="button" id="cancelNewEvent">Болих</button></div></form>`;
@@ -445,10 +484,11 @@ async function nextEditEvent(row,start){
 }
 function exactEditStart(row,value){return value===historicalInput(row.start_time)?row.start_time:historicalISO(value);}
 async function computeEditTimes(row,startValue,endValue){
- const start=exactEditStart(row,startValue),next=await nextEditEvent(row,start);
+ const start=exactEditStart(row,startValue),boundary=await validateEditStart(row,start);
+ const next=Date.parse(start)===Date.parse(row.start_time)?boundary.originalNext:await nextEditEvent(row,start);
  const end=next?next.start_time:(endValue===''?null:(row.end_time&&endValue===historicalInput(row.end_time)?row.end_time:historicalISO(endValue)));
  if(end&&Date.parse(end)<=Date.parse(start))throw Error('Дуусах цаг эхлэх цагаас хойш байх ёстой.');
- return {start,end,next};
+ return {start,end,next,previous:boundary.previous,gap:boundary.gap};
 }
 let editPreviewGeneration=0;
 async function previewEditContinuity(){
@@ -463,7 +503,8 @@ async function previewEditContinuity(){
   $('eEnd').readOnly=!!result.next;
   if(result.next){$('eEnd').value=historicalInput(result.end);hint.textContent='Дараагийн ID '+result.next.id+' төлөвийн эхлэх цагтай секундээр яг залгана. Хадгалах хүртэл бүртгэл өөрчлөгдөхгүй.';}
   else hint.textContent='Дараагийн төлөв олдсонгүй. Дуусах цагийг гараар оруулж болно. Хоосон бол нээлттэй хэвээр.';
- }catch(e){if(generation===editPreviewGeneration&&$('eContinuityHint'))$('eContinuityHint').textContent=e.message;}
+  if(result.gap>0)hint.textContent+=' Өмнөх төлөвтэй '+result.gap.toFixed(2)+' минутын завсар байна. Завсрын бодит төлвийг шалгана уу.';
+ }catch(e){if(generation===editPreviewGeneration&&$('eContinuityHint')){$('eContinuityHint').textContent=e.message;if($('eEnd'))$('eEnd').readOnly=false;}}
 }
 async function checkEditConflict(row,start,end){
  let query=sb.from('equipment_events').select('id,status,start_time,end_time')
@@ -475,10 +516,13 @@ async function checkEditConflict(row,start,end){
 }
 async function saveContinuousEvent(row,payload,next){
  if(!canUse())throw Error('Нэвтрэх эрхээ шалгана уу.');
+ await validateEditStart(row,payload.start_time);
  const currentNext=await nextEditEvent(row,payload.start_time);
  if(String(currentNext?.id??'')!==String(next?.id??'')||Date.parse(currentNext?.start_time||0)!==Date.parse(next?.start_time||0))throw Error('Дараагийн төлөв өөрчлөгдсөн байна. Дахин нээж шалгана уу.');
  await checkEditConflict(row,payload.start_time,payload.end_time);
  let query=sb.from('equipment_events').update(payload).eq('id',row.id).eq('start_time',row.start_time).eq('status',row.status);
+ query=query.eq('equipment_id',row.equipment_id);
+ for(const field of ['operator_name','smu','km','comment'])query=row[field]==null?query.is(field,null):query.eq(field,row[field]);
  query=row.end_time?query.eq('end_time',row.end_time):query.is('end_time',null);
  const {data,error}=await query.select('id').maybeSingle();
  if(error)throw error;
