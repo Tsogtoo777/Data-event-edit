@@ -184,15 +184,16 @@ function editOperatorOptions(list,current,query){
 document.addEventListener('input',e=>{const input=e.target;if(!input.matches('[data-edit-operator-search]'))return;const box=input.closest('[data-edit-operator-box]'),select=$(input.dataset.editOperatorSearch),item=equipment.find(x=>String(x.id)===String(input.dataset.equipment))||{},list=DataEventOperators.candidates(EDIT_OPERATOR_ROSTER,item),q=input.value.trim().toLocaleLowerCase();select.innerHTML=editOperatorOptions(list,select.value,input.value);box.querySelector('[data-edit-operator-count]').textContent=list.filter(x=>(x.name+' '+x.code+' '+x.position).toLocaleLowerCase().includes(q)).length+' / '+list.length+' оператор';});
 $('newEventPanel').addEventListener('change',e=>{if(e.target.id!=='nEquipment')return;const box=$('nOperator').closest('[data-edit-operator-box]');box.outerHTML=editOperatorField('nOperator',e.target.value,'');refreshNewOperator();});
 async function previousEditEvent(row){
- const {data,error}=await sb.from('equipment_events').select('id,start_time,end_time')
+ const {data,error}=await sb.from('equipment_events').select('*')
  .eq('equipment_id',row.equipment_id).neq('id',row.id).lt('start_time',row.start_time)
  .order('start_time',{ascending:false}).order('id',{ascending:false}).limit(1);
  if(error)throw Error('Өмнөх төлөвийг шалгаж чадсангүй: '+error.message);return data?.[0]||null;
 }
 async function validateEditStart(row,start){
  const originalNext=await nextEditEvent(row,row.start_time),previous=await previousEditEvent(row),a=Date.parse(start),old=Date.parse(row.start_time);
- if(originalNext&&a>=Date.parse(originalNext.start_time))throw Error('Эхлэх цаг дараагийн төлөвийг давж болохгүй. Бүртгэлийн дарааллыг өөрчлөхгүй.');
- if(previous?.end_time&&a>old&&a>Math.max(old,Date.parse(previous.end_time)))throw Error('Эхлэх цагийг хойшлуулбал өмнөх төлвөөс хоосон завсар үүснэ. Өмнөх төлөвийн дуусах цагийг шалгана уу.');
+ if(!Number.isFinite(a))throw Error('Эхлэх цаг буруу байна.');
+ if(originalNext&&a>=Date.parse(originalNext.start_time))throw Error('Эхлэх цаг дараагийн төлөвийг давж болохгүй.');
+ if(previous&&a<=Date.parse(previous.start_time))throw Error('Өмнөх төлөвийн эхлэлийг давж болохгүй.');
  const gap=previous?.end_time?Math.max(0,(a-Date.parse(previous.end_time))/60000):null;
  return {originalNext,previous,gap};
 }
@@ -315,11 +316,12 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
   const smu=numOrNull($('eSmu').value),km=numOrNull($('eKm').value);if(smu!==null&&(!Number.isFinite(smu)||smu<0))throw new Error('SMU утга буруу байна.');if(km!==null&&(!Number.isFinite(km)||km<0))throw new Error('KM утга буруу байна.');
   if(operatorRequired($('eStatus').value)&&!$('eOperator').value.trim())throw new Error('Энэ төлөв дээр операторын нэр заавал оруулна уу.');
    const payload={status:$('eStatus').value,start_time:start,end_time:end,operator_name:$('eOperator').value.trim()||null,smu,km,comment:$('eComment').value.trim()||null};
-  await checkEditConflict(row,start,end);
-  if(next&&Date.parse(row.end_time||0)!==Date.parse(end)){
+  const approved=await confirmBoundaryChange(row,payload,next);
+  if(!approved)return;
+  if(!approved.join&&next&&Date.parse(row.end_time||0)!==Date.parse(end)){
    if(!confirm('ID '+row.id+' төлөвийн дуусах цагийг дараагийн ID '+next.id+'-ийн эхлэл '+historicalInput(end).replace('T',' ')+' (UTC+8)-тай секундээр яг залгаж хадгалах уу?\nХөрш мөрүүдийг өөрчлөхгүй.'))return;
   }
-  await saveContinuousEvent(row,payload,next);
+  await saveContinuousEvent(row,payload,next,approved);
   // Synchronize the operator shown on the main Data Event equipment card only
   // when this edited event is still the latest open event for that equipment.
   // A historical edit must never replace the currently assigned operator.
@@ -479,7 +481,7 @@ $('newEventPanel').addEventListener('submit',async e=>{
  }finally{newEventBusy=false;button.disabled=newEventUncertain;}
 });
 
-// Only the selected historical event is updated. Adjacent rows are never moved.
+// Changed start boundaries require confirmation and a transactional RPC.
 async function nextEditEvent(row,start){
  const {data,error}=await sb.from('equipment_events').select('id,start_time')
   .eq('equipment_id',row.equipment_id).neq('id',row.id).gt('start_time',start)
@@ -508,7 +510,8 @@ async function previewEditContinuity(){
   $('eEnd').readOnly=!!result.next;
   if(result.next){$('eEnd').value=historicalInput(result.end);hint.textContent='Дараагийн ID '+result.next.id+' төлөвийн эхлэх цагтай секундээр яг залгана. Хадгалах хүртэл бүртгэл өөрчлөгдөхгүй.';}
   else hint.textContent='Дараагийн төлөв олдсонгүй. Дуусах цагийг гараар оруулж болно. Хоосон бол нээлттэй хэвээр.';
-  if(result.gap>0)hint.textContent+=' Өмнөх төлөвтэй '+result.gap.toFixed(2)+' минутын завсар байна. Завсрын бодит төлвийг шалгана уу.';
+  if(result.previous&&Date.parse(result.start)!==Date.parse(row.start_time))hint.textContent+=' Өмнөх ID '+result.previous.id+' төлөвийн дуусах цаг '+fmtDate(result.start)+' болж өөрчлөгдөнө. Хадгалах үед зөвшөөрөл асууна.';
+  else if(result.gap>0)hint.textContent+=' Өмнөх төлөвтэй '+result.gap.toFixed(2)+' минутын завсар байна. Завсрын бодит төлвийг шалгана уу.';
  }catch(e){if(generation===editPreviewGeneration&&$('eContinuityHint')){$('eContinuityHint').textContent=e.message;if($('eEnd'))$('eEnd').readOnly=false;}}
 }
 async function checkEditConflict(row,start,end){
@@ -519,9 +522,28 @@ async function checkEditConflict(row,start,end){
  if(error)throw Error('Давхцлыг серверээс шалгаж чадсангүй: '+error.message);
  if(data?.length)throw Error('ID '+data[0].id+' бүртгэлтэй давхцаж байна. Хөрш бүртгэлийг автоматаар өөрчилсөнгүй.');
 }
-async function saveContinuousEvent(row,payload,next){
+async function confirmBoundaryChange(row,payload,next){
+ const boundary=await validateEditStart(row,payload.start_time);
+ const previous=boundary.previous;
+ if(Date.parse(payload.start_time)===Date.parse(row.start_time)||!previous)return {join:false};
+ const message='Эхлэх цагийг өөрчилснөөр өмнөх төлөвийн хугацаа мөн өөрчлөгдөнө.\n\n'
+  +'Өмнөх ID '+previous.id+' · '+(previous.status||'')+'\nДуусах: '+(previous.end_time?fmtDate(previous.end_time):'нээлттэй')+' → '+fmtDate(payload.start_time)
+  +'\n\nСонгосон ID '+row.id+'\nЭхлэх: '+fmtDate(row.start_time)+' → '+fmtDate(payload.start_time)
+  +'\nДуусах: '+(payload.end_time?fmtDate(payload.end_time):'нээлттэй')
+  +'\n\nХоёр бүртгэлийг завсаргүй залгаж хамт хадгалах уу?';
+ if(!confirm(message))return null;
+ return {join:true,previous};
+}
+async function saveContinuousEvent(row,payload,next,approval){
  if(!canUse())throw Error('Нэвтрэх эрхээ шалгана уу.');
- await validateEditStart(row,payload.start_time);
+ const boundary=await validateEditStart(row,payload.start_time);
+ if(Date.parse(payload.start_time)!==Date.parse(row.start_time)&&boundary.previous){
+  if(!approval?.join||String(approval.previous?.id)!==String(boundary.previous.id))throw Error('Өмнөх төлөвтэй залгах зөвшөөрөл шаардлагатай. Дахин хадгална уу.');
+  const {data,error}=await sb.rpc('edit_event_join_boundary_v1',{p_expected:row,p_previous:approval.previous,p_next:next,p_patch:payload});
+  if(error)throw Error('Хоёр төлөвийг хадгалж чадсангүй. Дахин хадгалахаас өмнө жагсаалтаа шинэчилж шалгана уу. '+error.message);
+  if(!data?.ok)throw Error('Хадгалалтын баталгаагүй хариу. Жагсаалтаа шинэчилж шалгана уу.');
+  return;
+ }
  const currentNext=await nextEditEvent(row,payload.start_time);
  if(String(currentNext?.id??'')!==String(next?.id??'')||Date.parse(currentNext?.start_time||0)!==Date.parse(next?.start_time||0))throw Error('Дараагийн төлөв өөрчлөгдсөн байна. Дахин нээж шалгана уу.');
  await checkEditConflict(row,payload.start_time,payload.end_time);
