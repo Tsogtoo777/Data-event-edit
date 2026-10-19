@@ -557,6 +557,19 @@ async function saveContinuousEvent(row,payload,next,approval){
 }
 $('editor').addEventListener('change',e=>{if(e.target.id==='eStart')previewEditContinuity();});
 
+// DATA review links only read the target; saving still requires the existing Save action.
+const reviewParams=new URLSearchParams(location.search);
+const reviewContext={date:reviewParams.get('date')||'',equipment:reviewParams.get('equipment')||'',event:reviewParams.get('event')||''};
+let reviewOpened=false;
+function validReviewId(v){return /^[a-zA-Z0-9_-]{1,100}$/.test(v);}
+async function openReviewContext(){if(reviewOpened||!canUse())return;if(!reviewContext.event&&!reviewContext.equipment)return;
+ try{if(!/^\d{4}-\d{2}-\d{2}$/.test(reviewContext.date)||!validReviewId(reviewContext.equipment)||(reviewContext.event&&!validReviewId(reviewContext.event)))throw Error('DATA холбоосын утга буруу.');
+ if(!equipment.some(e=>String(e.id)===reviewContext.equipment))throw Error('Холбоосын техник лавлахад олдсонгүй.');currentTab='events';populateEquipmentFilter();setupHourFilter();$('filterEquipment').value=reviewContext.equipment;$('filterText').value='';$('filterDate').value='';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));
+ if(reviewContext.event){const {data,error}=await sb.from('equipment_events').select('*').eq('id',reviewContext.event).maybeSingle();if(error)throw error;if(!data)throw Error('Бүртгэл олдсонгүй эсвэл харах эрх хүрэхгүй байна.');if(String(data.equipment_id)!==reviewContext.equipment)throw Error('Техник, бүртгэлийн ID тохирохгүй.');events=events.filter(e=>String(e.id)!==String(data.id));events.unshift(data);renderResults();reviewOpened=true;startEdit('event',data.id);tell('DATA шалгалтаас ID '+data.id+' нээлээ. Хадгалах хүртэл өөрчлөлт орохгүй.');}
+ else{const a=new Date(reviewContext.date+'T07:00:00+08:00');if(!Number.isFinite(a.getTime()))throw Error('Огноо буруу.');const b=new Date(a.getTime()+86400000),rows=[];for(let offset=0;;offset+=500){const {data,error}=await sb.from('equipment_events').select('*').eq('equipment_id',reviewContext.equipment).lt('start_time',b.toISOString()).or('end_time.is.null,end_time.gt.'+a.toISOString()).order('start_time',{ascending:true}).order('id',{ascending:true}).range(offset,offset+499);if(error)throw error;rows.push(...(data||[]));if((data||[]).length<500)break;}events=rows;renderResults();reviewOpened=true;tell(reviewContext.date+' · 07:00–дараагийн 07:00 · DATA шалгалтын техникээр шүүлээ.');}
+ }catch(e){showError('loadError','DATA холбоос нээсэнгүй: '+e.message);}}
+const beforeReviewLoad=loadData;loadData=async function(){await beforeReviewLoad.apply(this,arguments);await openReviewContext();};
+
 checkSession();
 </script>
 </body>
