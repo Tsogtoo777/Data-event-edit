@@ -23,9 +23,45 @@ button{background:#1b1b1b;color:var(--orange);border:1px solid #4b4b4b;border-ra
 <link rel="icon" href="app.ico?v=20261018" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261018">
 <meta name="theme-color" content="#247fee">
-</head>
+<style id="desktopD1">/* D1: shared desktop workspace; status and timeline palette remains unchanged. */
+:root{--ui-bg:#181b20;--ui-panel:#22262d;--ui-raised:#2b3038;--ui-line:#414751;--ui-text:#edf0f4;--ui-muted:#b1bac6;--ui-accent:#ff842e;color-scheme:dark;--mak-bg:var(--ui-bg);--mak-panel:var(--ui-panel);--mak-border:var(--ui-line);--mak-orange:var(--ui-accent);--orange:var(--ui-accent);--bg:var(--ui-bg);--panel:var(--ui-panel);--line:var(--ui-line);--muted:var(--ui-muted)}
+html{scroll-padding-top:125px}body{background:var(--ui-bg);color:var(--ui-text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:#20242a;border-bottom:1px solid var(--ui-line);box-shadow:0 2px 8px #0003;padding:8px 18px;min-height:60px}
+header h1{font-size:18px;color:var(--ui-text);letter-spacing:.3px}header small,.header-brand small,small,.subtle,.meta,.count,.type,.event-extra{color:var(--ui-muted)}
+h2,h3,h4{color:var(--ui-text)}main{max-width:1800px;padding:12px 18px 30px;margin:0 auto}
+nav,.tabs{background:var(--ui-bg);gap:5px;padding:8px 18px;border-bottom:1px solid var(--ui-line)}
+button{font:inherit;font-weight:600;color:var(--ui-text);background:var(--ui-raised);border:1px solid #48515c;border-radius:6px;padding:7px 11px;min-height:32px;transition:background .1s,border-color .1s}
+button:hover:not(:disabled){background:#39414b;border-color:#8592a3}button:disabled{opacity:.55;cursor:wait}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:2px solid #ffad70;outline-offset:2px}
+nav button.active,.tabs button.active,.equipment-tabs button.active,button.primary,.primary{background:var(--ui-accent);color:#171b20;border-color:var(--ui-accent)}
+button.danger{color:#ffaaaa}input,select,textarea{background:#1a1e24;color:var(--ui-text);border:1px solid #4a535e;border-radius:6px;padding:7px 9px;font:inherit;min-height:32px}input::placeholder,textarea::placeholder{color:#9ba6b5;opacity:1}select option{background:#22262d;color:var(--ui-text)}
+label{color:var(--ui-muted);font-size:12px}select:disabled,input:disabled{color:#bac1cc;background:#242931}
+.card,.eq,.stat,.panel,.modal{background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:8px;box-shadow:none}
+.card,.panel{padding:12px}.stat{padding:10px 13px}.stat b{font-size:24px;color:var(--ui-text)}
+.current{background:#292f37;color:var(--ui-text)}.name{color:var(--ui-text)}
+.notice,.smu-note{background:#30291f;border-color:#715139;color:#efc79f}.err,.error{background:#38272b;border-color:#8b4a55;color:#ffd0d4}
+.badge{background:#343b45;color:#dce3eb;border-radius:4px}.log{border-bottom-color:var(--ui-line)}a{color:#a9d6ef}
+#msg,.toaster{background:#303741;color:var(--ui-text);border:1px solid #687383;border-radius:7px;z-index:100}.modal-backdrop{background:#10141ab8;align-items:center}.modal{border-radius:10px;box-shadow:0 18px 80px #0007}.modal-title{font-size:17px;color:var(--ui-text)}.modal-grid button{padding:9px 11px;font-size:13px}.modal-grid button.active{outline:2px solid #fff;outline-offset:-3px}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table td{padding:7px 9px}table th{color:var(--ui-muted)}
+.footer{color:#929ead}#authGate{background:#181b20}#authGate .auth-card{background:var(--ui-panel);border-color:#515b68;border-radius:10px}#authGate h2{color:var(--ui-text)}
+@media(min-width:1000px){header{height:60px}nav{top:60px;align-items:center;flex-wrap:wrap}header .header-logo{width:116px;max-height:38px}header small{font-size:11px}.stats{gap:12px}.grid{gap:12px}#quickToolbarQ6{max-width:1800px;margin:auto;padding:8px 18px!important}}
+@media(max-width:999px){nav{position:static;overflow-x:auto;white-space:nowrap}main{padding:10px}.tabs{padding:7px 0}.modal-backdrop{align-items:flex-end}.modal{border-radius:12px 12px 0 0}}
+.login{max-width:440px}.tabs{padding-left:0;padding-right:0;margin-bottom:10px}.row{grid-template-columns:180px 160px minmax(180px,1fr) minmax(220px,1.5fr);gap:10px}.notice{font-size:12px;padding:8px 12px}#filters{padding:9px 12px}#filters label{margin:0}#filters input,#filters select{margin-top:4px}#results{padding:0;background:transparent;border:0}.desktop-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0}.desktop-top h2{font-size:17px;margin:0;color:var(--ui-text)}.desktop-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.desktop-tools small{margin-right:8px}
+.equipment-group{border:1px solid var(--ui-line);border-radius:6px;margin:6px 0;background:var(--ui-panel);overflow:hidden}.equipment-group>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:8px 11px;cursor:pointer;background:#2a3039;border-bottom:1px solid transparent;min-height:40px}.equipment-group>summary::-webkit-details-marker{display:none}.equipment-group>summary::before{content:'▸';width:10px;color:#adb9c8}.equipment-group[open]>summary::before{content:'▾'}.equipment-group[open]>summary{border-color:var(--ui-line)}.equipment-group summary strong{font-size:13px;color:#e6edf6}.equipment-group summary .group-count{font-size:11px;color:var(--ui-muted)}.equipment-group summary button{margin-left:auto;min-height:26px;padding:3px 9px;font-size:11px}.group-warning{font-size:11px;color:#ffd595}.group-alert{font-size:11px;color:#ffb7bf}
+.desktop-table-wrap{overflow:auto;max-height:66vh}.event-table{width:100%;min-width:1380px;font-size:12px;border-collapse:separate;border-spacing:0}.event-table th{position:sticky;top:0;z-index:1;background:#242b34;color:#b9c4d2;text-align:left;font-size:11px;font-weight:600;white-space:nowrap;border-bottom:1px solid #576474}.event-table th,.event-table td{padding:6px 9px;border-right:1px solid #363e48;border-bottom:1px solid #363e48;vertical-align:middle}.event-table tr:nth-child(odd){background:#22272f}.event-table tr:nth-child(even){background:#282e37}.event-table tr[data-event-row]{cursor:pointer}.event-table tr[data-event-row]:hover{background:#343e4b}.event-table tr.desktop-selected{background:#3b4654;box-shadow:inset 3px 0 #ff842e}.event-table .time,.event-table .number{white-space:nowrap;font-variant-numeric:tabular-nums}.event-table .number{text-align:right}.event-table .comment{max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.event-table .operator{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.event-table .actions{flex-wrap:nowrap;gap:4px}.event-table button{padding:3px 7px;font-size:11px;min-height:25px}.status-pill{display:inline-block;max-width:260px;padding:3px 7px;border-left:3px solid var(--status-color,#a89bca);background:#33313e;border-radius:3px;font-size:11px;white-space:nowrap;color:var(--ui-text)}.row-flag{display:block;font-size:10px;white-space:nowrap;color:#ffcf8b}.row-flag.overlap,.row-flag.invalid{color:#ffb2bc}.group-more{padding:8px 11px}.empty-group{padding:9px 12px;color:var(--ui-muted)}.desktop-scope{font-size:11px;color:var(--ui-muted);margin:5px 0 10px}.desktop-shift-label{display:block!important}.entry strong{color:var(--ui-text)}
+@media(min-width:1250px){#editor:not(.hidden),#newEventPanel:not(.hidden){position:fixed;right:18px;top:118px;width:500px;max-height:calc(100vh - 138px);overflow:auto;z-index:25;box-shadow:0 14px 70px #0009;border-color:#7b6858}#appView:has(>#editor:not(.hidden)) #results,#appView:has(>#newEventPanel:not(.hidden)) #results{margin-right:520px}.editor-head h2{font-size:16px}.formrow{gap:8px}}
+.desktop-shift-label.hidden{display:none!important}
+@media(max-width:900px){.row{grid-template-columns:repeat(2,minmax(0,1fr))}.desktop-top{align-items:flex-start;flex-direction:column}.equipment-group summary{flex-wrap:wrap}.group-count{flex:1}.event-table{font-size:12px}}
+
+.status-tone-0{--status-color:#2DAA70;background:color-mix(in srgb,#2DAA70 14%,#252a32)}
+.status-tone-1{--status-color:#A9D6EF;background:color-mix(in srgb,#A9D6EF 14%,#252a32)}
+.status-tone-2{--status-color:#F2D34F;background:color-mix(in srgb,#F2D34F 14%,#252a32)}
+.status-tone-3{--status-color:#F28C28;background:color-mix(in srgb,#F28C28 14%,#252a32)}
+.status-tone-4{--status-color:#EC8FC2;background:color-mix(in srgb,#EC8FC2 14%,#252a32)}
+.status-tone-5{--status-color:#DC4444;background:color-mix(in srgb,#DC4444 14%,#252a32)}
+.status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
+.status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style></head>
 <body>
-<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв болон бүтээлийн хуучин бүртгэл засварлах</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
+<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · D1</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
 <section id="loginView" class="panel login">
   <h2 style="margin-top:0;color:var(--orange)">Нэвтрэх</h2>
@@ -598,6 +634,96 @@ document.addEventListener('click',e=>{const link=e.target.closest('[data-audit-r
 const oldLogin=showLogin;showLogin=function(){hide();records=[];cursor=null;$('auRows').innerHTML='';return oldLogin.apply(this,arguments);};attachRowButtons();
 const style=document.createElement('style');style.textContent='#auditPanel td,#auditPanel th{padding:8px;text-align:left;border-bottom:1px solid #444;max-width:420px}#auditPanel th{color:var(--orange)}';document.head.append(style);
 })();
+</script>
+<script>(function(root){"use strict";const categories=[{"name": "Бүтээлтэй", "key": "work", "color": "#2DAA70", "text": "#071D12", "statuses": ["Б Бүтээлтэй | ЭЦС"]}, {"name": "Бэлэн байдалд", "key": "ready", "color": "#A9D6EF", "text": "#102534", "statuses": ["Төлөвлөгөөний дагуу ажиллахгүй | ЭЦС", "Бэлэн нөөцөнд зогсож байна | ЭЦС"]}, {"name": "Норматив", "key": "normative", "color": "#F2D34F", "text": "#292100", "statuses": ["Амралт цайны цаг | ЭЦС", "Түлш авах хугацаа | ЭЦС", "Унтлагын цаг | ЭЦС", "Ээлж солилцох | ЭЦС", "Усан хангамж | ЭЦС"]}, {"name": "Ашиглалтаас шалтгаалсан", "key": "operating", "color": "#F28C28", "text": "#301500", "statuses": ["Цайны цаг хэтрэлт | ЭЦС", "Түлш авах хугацаа хэтрэлт | ЭЦС", "Унтлагын цаг хэтрэлт | ЭЦС", "Ээлж солилцох хэтрэлт | ЭЦС", "Ус хангамж хэтрэлт | ЭЦС", "Тэсэлгээний хугацаа хэтрэлт | ЭЦС", "Операторын тойрох үзлэг | ЭЦС", "Операторын гэнэтийн үзлэг | ЭЦС", "Тэсэлгээнээс шалтгаалсан нүүдэл | ЭЦС", "Хувийн цаг | ЭЦС", "Уул технологийн хүндрэл | ЭЦС", "Хорших техник дутагдалтай | ЭЦС", "Ажиллах талбайгүй | ЭЦС", "Ачуулах экскаватороо хүлээсэн | ЭЦС", "Ажиллах хүнгүй | ЭЦС", "Операторгүй | ЭЦС", "Операторын бие муудсан | ЭЦС", "Оператор сургалтанд суусан | ЭЦС", "Экскаваторт гэнэтийн эвдрэл гарсан | ЭЦС", "Инженерийн ажил | ЭЦС", "Ул түрэх, ажлын талбай бэлдэх | ЭЦС", "Маркшейдер шалтгаалсан зогсолт | ЭЦС", "Геологи шалтгаалсан зогсолт | ЭЦС", "Цахилгааны зөөвөр нүүдэл | ЭЦС", "Мөргөцөг хоорондын шилжилт хөдөлгөөн | ЭЦС", "Якно зөөвөрлөх | ЭЦС"]}, {"name": "Төлөвлөгөөт засвар", "key": "planned", "color": "#EC8FC2", "text": "#311125", "statuses": ["Экскаватор Төлөвлөгөөт засварт зогссон | ЭЦС", "Механик төлөвлөгөөт үзлэг | ЭЦС", "Техник үйлчилгээ (мот.цаг) | ЭЦС", "Тосолгоо үйлчилгээ тос масло нэмэх | ЭЦС", "Төлөвлөгөөт түргэн элэгдэх | ЭЦС"]}, {"name": "Эвдрэл гэмтэл, түүнтэй холбоотой засварын хүлээлт", "key": "repair", "color": "#DC4444", "text": "#FFFFFF", "statuses": ["IT Хүлээлт | ЭЦС", "Түргэн элэгдэх гэнэтийн | ЭЦС", "Механик хүлээлт | ЭЦС", "Цахилгаанчин хүлээлт | ЭЦС", "Механик гэнэтийн үзлэг | ЭЦС", "Тосолгоо хүлээлт | ЭЦС", "Станц харилцаа холбооны гэмтэл завсар | ЭЦС", "Цахилгаан систем | ЭЦС", "Гидрийн систем | ЭЦС", "Гидрийн шланк | ЭЦС", "Гидрийн цилиндр | ЭЦС", "Засвар хүлээгдэж байгаа | ЭЦС", "Засварчин хүрэлцээгүй | ЭЦС", "Хөдөлгүүр засвар | ЭЦС", "Тормозны систем | ЭЦС", "Хүч дамжуулах анги | ЭЦС", "Хөргөлт, халаалтын систем | ЭЦС", "Гагнуурын ажил | ЭЦС", "Явах анги | ЭЦС", "Хийн систем Бусад | ЭЦС", "Дугуй | ЭЦС", "Түлшний систем | ЭЦС", "Тосолгооны систем | ЭЦС", "Гэрээт гэнэтийн үзлэг | ЭЦС", "Засвар цаг хэтрэлт/ мото.цаг/ | ЭЦС", "Асаалтын систем | ЭЦС", "Усны систем | ЭЦС", "Агаарын систем | ЭЦС", "Ажлын багаж | ЭЦС", "Удирдлагын систем | ЭЦС", "Кабин засвар | ЭЦС", "Шат тавцан | ЭЦС", "Цамхагийн засвар | ЭЦС", "Гэрээт компани засвар | ЭЦС"]}, {"name": "Сэлбэг хангамж", "key": "supply", "color": "#999999", "text": "#181818", "statuses": ["Сэлбэг хүлээлт | ЭЦС", "Сэлбэггүй зогссон | ЭЦС", "Хангамжаас шалтгаалсан | ЭЦС", "Түлш, тосгүй | ЭЦС", "Үйлчилгээний машин дутагдалтай | ЭЦС"]}, {"name": "Гадны нөлөөлөл", "key": "external", "color": "#966344", "text": "#FFFFFF", "statuses": ["Цаг агаарын саатал, хүндрэл | ЭЦС", "Захиргааны шийдвэрээр зогсоосон сул зогсолт | ЭЦС", "Өөр төсөлд ажиллах | ЭЦС", "Цахилгаан тасралт Төвийн шугам | ЭЦС", "Дэд бүтэцийн цахилгааны гэмтэл Өндрийн | ЭЦС", "Улсын байгууллага хяналт шалгалт | ЭЦС"]}];const clean=v=>String(v??" ").split("|")[0].trim().replace(/\s+/g," ");const lookup=new Map();categories.forEach((c,i)=>c.statuses.forEach(s=>lookup.set(clean(s),i)));function index(s){return lookup.get(clean(s))??-1;}const api={categories,index,category:s=>categories[index(s)]||null};if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.DataStatusCatalog=api;})(globalThis);</script>
+<script>
+(function(root){'use strict';
+const SHIFT=8*3600000;
+function bounds(day,shift='all'){
+ if(!day)return null;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Огноо буруу байна.');
+ const start=Date.parse(day+'T07:00:00+08:00');
+ if(!Number.isFinite(start)||new Date(start+SHIFT).toISOString().slice(0,10)!==day)throw Error('Огноо буруу байна.');
+ if(!['all','day','night'].includes(shift))throw Error('Ээлж буруу байна.');
+ return shift==='night'?[start+12*3600000,start+24*3600000]:[start,start+(shift==='day'?12:24)*3600000];
+}
+function stamp(value){const t=typeof value==='number'?value:Date.parse(value);return Number.isFinite(t)?new Date(t+SHIFT).toISOString().slice(0,16).replace('T',' '):'—';}
+function interval(row,now){const a=Date.parse(row.start_time),b=row.end_time?Date.parse(row.end_time):now;return {a,b,valid:Number.isFinite(a)&&Number.isFinite(b)&&b>=a};}
+function duration(row,window,now){const t=interval(row,now);if(!t.valid)return null;const a=window?Math.max(t.a,window[0]):t.a,b=window?Math.min(t.b,window[1]):t.b;return Math.max(0,b-a)/60000;}
+function filter(rows,options,now,name){const window=bounds(options.day,options.shift),query=String(options.query||'').trim().toLocaleLowerCase();return rows.filter(row=>{
+ if(options.equipment&&String(row.equipment_id)!==String(options.equipment))return false;
+ const t=interval(row,now);if(window&&(!Number.isFinite(t.a)||(t.valid?(t.a>=window[1]||t.b<=window[0]):(t.a<window[0]||t.a>=window[1]))))return false;
+ return !query||[name(row.equipment_id),row.status,row.operator_name,row.comment,row.smu,row.km,row.id].some(v=>String(v??'').toLocaleLowerCase().includes(query));
+});}
+function analyse(rows,window,now){
+ const groups=new Map(),flags=new Map();
+ const add=(row,flag)=>{const key=String(row.id);if(!flags.has(key))flags.set(key,[]);flags.get(key).push(flag);};
+ for(const row of rows){const key=String(row.equipment_id);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);}
+ for(const list of groups.values()){
+  list.sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time)||String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));let frontier=null,end=-Infinity;
+  for(const row of list){const t=interval(row,now);if(!t.valid){add(row,{kind:'invalid',text:'Цаг буруу'});continue;}
+   if(frontier){const left=t.a<end?t.a:end,right=t.a<end?Math.min(t.b,end):t.a,lo=window?Math.max(left,window[0]):left,hi=window?Math.min(right,window[1]):right;
+    if(hi-lo>1){const mins=(hi-lo)/60000;add(row,{kind:t.a<end?'overlap':'gap',minutes:mins,previous:frontier.id,text:(t.a<end?'Давхардал ':'Завсар ')+mins.toFixed(2)+' мин'});}
+   }
+   if(t.b>end){end=t.b;frontier=row;}
+  }
+ }
+ return flags;
+}
+const api={bounds,stamp,interval,duration,filter,analyse};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.DesktopEditCore=api;
+})(globalThis);
+
+</script>
+<script>
+(function(){'use strict';
+const C=DesktopEditCore,previousRender=renderResults,previousFilter=filteredRows,openGroups=new Set(),groupRows=new Map(),loadedCounts=new Map();let renderNow=Date.now(),renderWindow=null,selectedId=null;
+const shiftLabel=document.createElement('label');shiftLabel.id='desktopShiftWrap';shiftLabel.className='desktop-shift-label';shiftLabel.innerHTML='Ээлж<select id="desktopShift"><option value="all">Бүх ээлж · 07–07</option><option value="day">Өдөр · 07–19</option><option value="night">Шөнө · 19–07</option></select>';
+$('filterDate').parentElement.after(shiftLabel);$('filterDate').parentElement.firstChild.textContent='Ээлжийн огноо';
+const source=$('filters').querySelector('label:last-child');if(source&&source.textContent.includes('Эх сурвалж'))source.remove();
+function options(){return {day:$('filterDate').value,shift:$('desktopShift').value,equipment:$('filterEquipment').value,query:$('filterText').value};}
+filteredRows=function(){return currentTab==='events'?C.filter(events,options(),Date.now(),eqName):previousFilter.apply(this,arguments);};
+const cleanStatus=s=>String(s||'Төлөвгүй').split('|')[0].trim();
+function statusPill(status){const i=DataStatusCatalog.index(status);return '<span class="status-pill status-tone-'+i+'" title="'+esc(status||'Төлөвгүй')+'">'+esc(cleanStatus(status))+'</span>';}
+function rowHTML(row,flags){
+ const id=esc(row.id),gap=(flags||[]).find(f=>f.kind==='gap'),mins=C.duration(row,renderWindow,renderNow),validId=row.id!==null&&row.id!==undefined;
+ const actions='<div class="actions"><button type="button" data-edit="event" data-id="'+id+'" '+(!validId?'disabled':'')+'>Засах</button>'+(gap&&gap.previous!=null?'<button type="button" data-add-gap="'+esc(gap.previous)+'">Завсар нөхөх</button>':'')+(validId?'<button type="button" data-audit-row="'+id+'" data-audit-table="equipment_events">Түүх</button>':'')+'</div>';
+ return '<tr data-event-row="'+id+'" tabindex="'+(validId?'0':'-1')+'" class="'+(String(selectedId)===String(row.id)?'desktop-selected':'')+'" aria-label="'+esc(eqName(row.equipment_id)+' · '+cleanStatus(row.status)+' · '+C.stamp(row.start_time)+' · Засах')+'"><td class="number">'+(validId?id:'—')+'</td><td class="time">'+C.stamp(row.start_time)+'</td><td class="time">'+(row.end_time?C.stamp(row.end_time):'Нээлттэй')+'</td><td class="number" title="Сонгосон хугацаанд ногдох минут">'+(mins===null?'—':mins.toFixed(2))+'</td><td>'+statusPill(row.status)+'</td><td class="operator" title="'+esc(row.operator_name||'')+'">'+esc(row.operator_name||'—')+'</td><td class="number">'+esc(row.smu??'—')+'</td><td class="number">'+esc(row.km??'—')+'</td><td class="comment" title="'+esc(row.comment||'')+'">'+esc(row.comment||'—')+'</td><td>'+(flags||[]).map(f=>'<span class="row-flag '+f.kind+'">'+esc(f.text)+'</span>').join('')+'</td><td>'+actions+'</td></tr>';
+}
+let analysis=new Map();
+function fillGroup(details,more=false){
+ const key=details.dataset.equipmentGroup,rows=groupRows.get(key)||[],body=details.querySelector('[data-group-content]');if(!body)return;
+ let count=loadedCounts.get(key)||100;if(more)count+=100;count=Math.min(count,rows.length);loadedCounts.set(key,count);
+ body.innerHTML='<div class="desktop-table-wrap"><table class="event-table"><thead><tr><th>ID</th><th>Эхэлсэн · UTC+8</th><th>Дууссан · UTC+8</th><th>Минут</th><th>Төлөв</th><th>Оператор</th><th>Моточаг</th><th>Км</th><th>Тайлбар</th><th>Цагийн шалгалт</th><th>Үйлдэл</th></tr></thead><tbody>'+rows.slice(0,count).map(row=>rowHTML(row,analysis.get(String(row.id)))).join('')+'</tbody></table></div>'+(count<rows.length?'<div class="group-more"><button type="button" data-group-more="'+esc(key)+'">Дараах 100 мөр · '+count+' / '+rows.length+'</button></div>':'');
+}
+renderResults=function(){
+ const eventsTab=currentTab==='events';shiftLabel.classList.toggle('hidden',!eventsTab);shiftLabel.style.display=eventsTab?'block':'none';
+ if(!eventsTab)return previousRender.apply(this,arguments);
+ renderNow=Date.now();let rows;try{renderWindow=C.bounds(options().day,options().shift);rows=filteredRows();}catch(error){$('results').innerHTML='<p class="error">'+esc(error.message)+'</p>';return;}
+ groupRows.clear();for(const row of rows){const key=String(row.equipment_id);if(!groupRows.has(key))groupRows.set(key,[]);groupRows.get(key).push(row);}
+ for(const list of groupRows.values())list.sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time)||String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
+ analysis=C.analyse(events,renderWindow,renderNow);
+ let html='<div class="desktop-top"><h2>Төлөвийн бүртгэл</h2><div class="desktop-tools"><small>'+groupRows.size+' техник · '+rows.length+' мөр</small><button type="button" data-groups-open>Бүгдийг дэлгэх</button><button type="button" data-groups-close>Бүгдийг хураах</button></div></div><p class="desktop-scope">Мөр дээр дарж засна. Минут нь сонгосон ээлжид ногдох хугацаа. Завсар/давхардлыг татсан бүртгэлүүдийн хооронд шалгав; ээлж бүрэн эсэхийн баталгаа биш.'+(events.length>=1000?' Сүүлийн 1000 төлөв татсан тул хуучин огнооны мэдээлэл дутуу байж болно.':'')+'</p>';
+ if(!rows.length)html+='<div class="panel subtle">Тохирох бүртгэл олдсонгүй. Огноо, техник, хайлтаа шалгана уу.</div>';
+ const groups=[...groupRows].sort((a,b)=>eqName(a[1][0].equipment_id).localeCompare(eqName(b[1][0].equipment_id),'mn',{numeric:true}));
+ for(const [key,list] of groups){const flags=list.flatMap(row=>analysis.get(String(row.id))||[]),gaps=flags.filter(f=>f.kind==='gap').length,overlaps=flags.filter(f=>f.kind==='overlap'||f.kind==='invalid').length;
+  const open=openGroups.has(key)||String($('filterEquipment').value)===key||list.some(row=>editing?.type==='event'&&String(editing.row.id)===String(row.id));
+  html+='<details class="equipment-group" data-equipment-group="'+esc(key)+'" '+(open?'open':'')+'><summary><strong>'+esc(eqName(list[0].equipment_id))+'</strong><span class="group-count">'+list.length+' мөр</span>'+(gaps?'<span class="group-warning">'+gaps+' завсар</span>':'')+(overlaps?'<span class="group-alert">'+overlaps+' цагийн зөрүү</span>':'')+'<button type="button" data-group-add="'+esc(key)+'">＋ Төлөв нэмэх</button></summary><div data-group-content></div></details>';
+ }
+ $('results').innerHTML=html;for(const details of $('results').querySelectorAll('.equipment-group[open]'))fillGroup(details);
+};
+$('results').addEventListener('toggle',event=>{const details=event.target;if(!details.matches?.('.equipment-group'))return;const key=details.dataset.equipmentGroup;if(details.open){openGroups.add(key);fillGroup(details);}else openGroups.delete(key);},true);
+function selectRow(id){selectedId=id;for(const row of $('results').querySelectorAll('[data-event-row]'))row.classList.toggle('desktop-selected',row.dataset.eventRow===String(id));}
+$('results').addEventListener('click',event=>{
+ const add=event.target.closest('[data-group-add]');if(add){event.preventDefault();showNewEvent({equipment_id:add.dataset.groupAdd});return;}
+ if(event.target.closest('[data-groups-open],[data-groups-close]')){const open=!!event.target.closest('[data-groups-open]');for(const d of $('results').querySelectorAll('.equipment-group')){d.open=open;if(open){openGroups.add(d.dataset.equipmentGroup);fillGroup(d);}else openGroups.delete(d.dataset.equipmentGroup);}return;}
+ const more=event.target.closest('[data-group-more]');if(more){fillGroup(more.closest('.equipment-group'),true);return;}
+ const row=event.target.closest('[data-event-row]');if(!row)return;selectRow(row.dataset.eventRow);if(event.target.closest('button,a,input,select,textarea'))return;if(row.tabIndex>=0)startEdit('event',row.dataset.eventRow);
+});
+$('results').addEventListener('keydown',event=>{if(event.target.matches('[data-event-row]')&&(event.key==='Enter'||event.key===' ')){event.preventDefault();if(!event.repeat&&event.target.tabIndex>=0){selectRow(event.target.dataset.eventRow);startEdit('event',event.target.dataset.eventRow);}}});
+$('desktopShift').addEventListener('change',renderResults);
+if(typeof MutationObserver!=='undefined')new MutationObserver(()=>{if($('results').querySelector('.equipment-group'))for(const d of $('results').querySelectorAll('.equipment-group'))if(editing?.type==='event'&&groupRows.get(d.dataset.equipmentGroup)?.some(row=>String(row.id)===String(editing.row.id)))d.open=true;}).observe($('editor'),{attributes:true,attributeFilter:['class']});
+})();
+
 </script>
 </body>
 </html>
