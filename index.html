@@ -390,7 +390,6 @@ function validateNewEvent(input,now=Date.now()){
  if(Date.parse(end_time)<=Date.parse(start_time))throw Error('Дуусах цаг эхлэх цагаас хойш байх ёстой.');
  if(Date.parse(end_time)>now)throw Error('Дууссан түүхэн бүртгэл нэмнэ. Ирээдүйн цаг оруулахгүй.');
  const operator_name=String(input.operator||'').trim();
- if(operatorRequired(input.status)&&!operator_name)throw Error('Энэ төлөвт оператор заавал оруулна.');
  const comment=String(input.comment||'').trim();
  if(!comment)throw Error('Нэмж буй шалтгаан, тайлбарыг бичнэ үү.');
  const payload={equipment_id:equipment.find(x=>String(x.id)===String(input.equipment_id)).id,status:input.status,start_time,end_time,operator_name:operator_name||null,comment};
@@ -414,13 +413,13 @@ function showNewEvent(defaults={}){
  <label>Төлөв хайх<input id="nStatusSearch" type="search" placeholder="Төлөвийн нэр"><select id="nStatus" required><option value="">Сонгох</option>${opts(statusNames,'')}</select></label>
  <label>Эхэлсэн цаг (UTC+8)<input id="nStart" type="datetime-local" step="60" ${newEventGap?"readonly":""} value="${esc(historicalInput(defaults.start))}" required></label>
  <label>Дууссан цаг (UTC+8)<input id="nEnd" type="datetime-local" step="60" ${newEventGap?"readonly":""} value="${esc(historicalInput(defaults.end))}" required></label>
- <label>Оператор${editOperatorField('nOperator',id,defaults.operator||'')}<span id="nOperatorHint" class="subtle"></span></label>
+ <label>Оператор (заавал биш)${editOperatorField('nOperator',id,defaults.operator||'')}<span id="nOperatorHint" class="subtle"></span></label>
  <label>SMU<input id="nSmu" type="number" min="0" step="any"></label><label>KM<input id="nKm" type="number" min="0" step="any"></label></div>
  <label>Нэмж буй шалтгаан / тайлбар<textarea id="nComment" required></textarea></label><div id="newEventError" class="error hidden"></div>
  <div class="actions"><button id="saveNewEvent" class="primary" type="submit">Шалгаж нэмэх</button><button type="button" id="cancelNewEvent">Болих</button></div></form>`;
  $('newEventPanel').classList.remove('hidden');$('newEventPanel').scrollIntoView({behavior:'smooth',block:'start'});refreshNewOperator();
 }
-function refreshNewOperator(){const required=operatorRequired($('nStatus').value);$('nOperator').required=required;$('nOperatorHint').textContent=required?'Оператор заавал оруулна.':'Засвар/хангамжийн төлөвт хоосон байж болно.';}
+function refreshNewOperator(){const input=$('nOperator');if(!input)return;input.required=false;$('nOperatorHint').textContent='Заавал биш. Хоосон хадгалаад дараа нь «Засах» хэсгээс операторын нэр нэмж болно.';}
 async function getNewEventConflict(payload){
  const {data,error}=await sb.from('equipment_events').select('id,status,start_time,end_time')
  .eq('equipment_id',payload.equipment_id).lt('start_time',payload.end_time)
