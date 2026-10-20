@@ -59,9 +59,9 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
 .status-tone-4{--status-color:#EC8FC2;background:color-mix(in srgb,#EC8FC2 14%,#252a32)}
 .status-tone-5{--status-color:#DC4444;background:color-mix(in srgb,#DC4444 14%,#252a32)}
 .status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
-.status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style></head>
+.status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style></head>
 <body>
-<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · D1</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
+<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
 <section id="loginView" class="panel login">
   <h2 style="margin-top:0;color:var(--orange)">Нэвтрэх</h2>
@@ -375,7 +375,7 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
    }
   }
   // If the edited row is the currently open event and remains open, sync its summary status on equipment.
-  if(!row.end_time&&!payload.end_time){const {error:syncError}=await sb.from('equipment').update({current_status:payload.status}).eq('id',row.equipment_id);if(syncError)tell('Төлөвийн мөр хадгалагдсан. Харин equipment.current_status шинэчлэхэд алдаа гарлаа: '+syncError.message,true);}
+// E2: current_status is synchronized atomically by the database trigger.
  }else{
    const drill=isDrillProduction(row);
    const amount=Number($('pAmount').value),hour=Number($('pHour').value);
@@ -725,5 +725,61 @@ if(typeof MutationObserver!=='undefined')new MutationObserver(()=>{if($('results
 })();
 
 </script>
-</body>
+<script id="eventE2Script">
+// E2 routes historical adds and cancellation through one transactional RPC.
+(function(){
+'use strict';
+let active=null,busy=false;
+const panel=$('newEventPanel');
+const priorNew=showNewEvent;
+showNewEvent=function(){priorNew.apply(this,arguments);const info=panel.querySelector('p.subtle');if(info)info.textContent='Дууссан хугацаанд төлөв нэмнэ (UTC+8). Нэг хуучин төлөвийн дотор оруулбал өмнөх/дараах хэсгийг хадгалж хуваана. Олон төлөв дамнавал автоматаар солихгүй. Хадгалахаас өмнө өөрчлөлтийг харуулна.';};
+const priorEditor=renderEventEditor;
+renderEventEditor=function(row){priorEditor(row);const actions=$('editor').querySelector('#editEventForm .actions');if(actions){const button=document.createElement('button');button.type='button';button.className='danger';button.dataset.cancelE2=String(row.id);button.textContent='Төлөв цуцлах';actions.append(button);}};
+const dialog=document.createElement('dialog');dialog.id='previewE2';
+dialog.innerHTML='<h2 id="e2Title">Өөрчлөлтийг шалгах</h2><p id="e2Equipment"></p><p id="e2Summary" class="subtle"></p><p class="notice">Цуцлахад сонгосон хугацааг өмнөх төлөвт нэгтгэнэ. Хуучин мөрүүд бүтнээрээ өөрчлөлтийн түүхэнд хадгалагдана.</p><div id="e2Rows"></div><div id="e2Error" class="error hidden"></div><p id="e2Message" role="status"></p><div class="actions"><button id="e2Save" class="primary" type="button">Баталгаажуулж хадгалах</button><button id="e2Close" type="button">Болих</button></div>';
+document.body.append(dialog);
+function stamp(v){return v?historicalInput(v).replace('T',' '):'Нээлттэй';}
+function detail(row){if(!row)return '—';return '<b>'+esc(row.status||'—')+'</b><br>'+esc(stamp(row.start_time))+' → '+esc(stamp(row.end_time))+'<br>Оператор: '+esc(row.operator_name||'—')+' · Моточаг: '+esc(row.smu??'—')+' · Км: '+esc(row.km??'—')+(row.comment?'<br>'+esc(row.comment):'');}
+const verbs={update:'Хугацаа өөрчлөх',resume:'Хуучин төлөвийг үргэлжлүүлэх',insert:'Шинэ төлөв',cancel:'Цуцлах · түүхэнд хадгална'};
+async function rpc(mode,operation,input,expected,request){const {data,error}=await sb.rpc('ets_edit_event_e2',{p_mode:mode,p_operation:operation,p_input:input,p_expected:expected||null,p_request:request||null});if(error)throw error;if(!data?.ok)throw Error('Хадгалалтын баталгаа ирсэнгүй.');return data;}
+async function preview(operation,input){
+ if(active||busy)throw Error('Нээгдсэн шалгалтын цонхоо эхлээд дуусгана уу.');
+ if(!canUse())throw Error('Засах эрхээ шалгана уу.');
+ busy=true;
+ try{const data=await rpc('preview',operation,input);active={operation,input,plan:data.plan,request:crypto.randomUUID(),uncertain:false};
+  $('e2Title').textContent=operation==='cancel'?'Төлөв цуцлах — урьдчилсан шалгалт':'Төлөв нэмэх — урьдчилсан шалгалт';
+  $('e2Equipment').textContent=data.plan.equipment_name+' · UTC+8 · Шалтгаан: '+input.reason;
+  $('e2Summary').textContent='DATA-ийн одоогийн төлөв: '+(data.plan.summary_before||'Нээлттэй төлөвгүй')+' → '+(data.plan.summary_after||'Нээлттэй төлөвгүй');
+  $('e2Rows').innerHTML='<table><thead><tr><th>Үйлдэл / ID</th><th>Өмнө</th><th>Дараа</th></tr></thead><tbody>'+data.plan.changes.map(c=>'<tr><td>'+esc(verbs[c.kind]||c.kind)+'<br>'+esc(c.before?.id?'ID '+c.before.id:'Шинэ ID')+'</td><td>'+detail(c.before)+'</td><td>'+detail(c.after)+'</td></tr>').join('')+'</tbody></table>';
+  hideError('e2Error');$('e2Message').textContent='Хадгалах хүртэл бүртгэл өөрчлөгдөхгүй.';$('e2Save').disabled=false;$('e2Save').textContent='Баталгаажуулж хадгалах';dialog.showModal();
+ }finally{busy=false;}
+}
+// Capture before the legacy non-transactional add handler. Never perform both writes.
+panel.addEventListener('submit',async e=>{
+ if(e.target.id!=='newEventForm')return;e.preventDefault();e.stopImmediatePropagation();
+ if(busy||active)return;
+ const button=$('saveNewEvent');button.disabled=true;hideError('newEventError');
+ try{const event=validateNewEvent({equipment_id:$('nEquipment').value,status:$('nStatus').value,start:$('nStart').value,end:$('nEnd').value,operator:$('nOperator').value,comment:$('nComment').value,smu:$('nSmu').value,km:$('nKm').value});await verifyGapAnchors(newEventGap);await preview('insert',{event,reason:event.comment});}
+ catch(err){showError('newEventError',err.message||'Шалгалт амжилтгүй.');}finally{button.disabled=false;}
+},true);
+document.addEventListener('click',async e=>{const button=e.target.closest('[data-cancel-e2]');if(!button)return;e.preventDefault();if(busy||active)return;const reason=prompt('Энэ төлөвийг цуцалж, хугацааг өмнөх төлөвт нэгтгэнэ.\nЦуцлах шалтгаанаа бичнэ үү:');if(!reason?.trim())return;button.disabled=true;try{await preview('cancel',{id:button.dataset.cancelE2,reason:reason.trim()});}catch(err){tell(err.message||'Цуцлах шалгалт амжилтгүй.',true);}finally{button.disabled=false;}});
+function close(){if(busy)return;if(active?.uncertain&&!confirm('Хадгалалтын хариу тодорхойгүй байна. Дахин нэмэхээс өмнө бүртгэл, өөрчлөлтийн түүхийг шалгана уу. Цонхыг хаах уу?'))return;active=null;dialog.close();}
+$('e2Close').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
+$('e2Save').onclick=async function(){
+ if(busy||!active)return;busy=true;this.disabled=true;$('e2Close').disabled=true;hideError('e2Error');
+ const pending=active;
+ try{if(!canUse())throw Error('Нэвтрэх эрхээ шалгана уу.');const data=await rpc('save',pending.operation,pending.input,pending.plan,pending.request);
+  active=null;dialog.close();panel.classList.add('hidden');closeEditor();currentTab='events';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));tell('Хадгалалт баталгаажлаа. Хуучин мэдээлэл түүхэнд хадгалагдсан.');
+  try{await loadData();$('filterEquipment').value=data.equipment_id;renderResults();}catch{tell('Хадгалсан. Жагсаалтыг шинэчлэхэд алдаа гарлаа. «Шинэчлэх» дарна уу.',true);}
+ }catch(err){
+  const definite=typeof err.code==='string'&&/^(P\d{4}|\d{5}|42501|42883)$/.test(err.code);
+  if(definite){pending.uncertain=false;$('e2Message').textContent='Сервер хүсэлтийг татгалзсан. Өөрчлөлт хадгалагдаагүй. Хаагаад дахин шалгана уу.';this.disabled=true;}
+  else{pending.uncertain=true;this.disabled=false;this.textContent='Ижил хүсэлтийн хариуг дахин шалгах';$('e2Message').textContent='Хариу тодорхойгүй. Дахин дарахад ижил хүсэлтийн ID ашиглана; давхар бүртгэл үүсгэхгүй.';}
+  showError('e2Error',err.message||'Сүлжээний хариу ирсэнгүй.');
+ }finally{busy=false;$('e2Close').disabled=false;}
+};
+window.addEventListener('beforeunload',e=>{if(busy||active?.uncertain){e.preventDefault();e.returnValue='';}});
+})();
+
+</script></body>
 </html>
