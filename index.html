@@ -61,7 +61,7 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
 .status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
 .status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style></head>
 <body>
-<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.1</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
+<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.2</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
 <section id="loginView" class="panel login">
   <h2 style="margin-top:0;color:var(--orange)">Нэвтрэх</h2>
@@ -408,7 +408,7 @@ function historicalISO(value){
 }
 function historicalInput(iso){return iso?new Date(Date.parse(iso)+8*3600000).toISOString().slice(0,16):'';}
 function newEventTimes(input,gap){
- if(!gap)return {start_time:historicalISO(input.start),end_time:historicalISO(input.end)};
+ if(!gap)return {start_time:historicalISO(input.start),end_time:input.end?historicalISO(input.end):null};
  if(String(input.equipment_id)!==String(gap.equipment_id)||input.start!==historicalInput(gap.start)||input.end!==historicalInput(gap.end))throw Error('Завсрын техник/цаг өөрчлөгдсөн байна. Завсраа дахин сонгоно уу.');
  return {start_time:gap.start,end_time:gap.end};
 }
@@ -423,8 +423,9 @@ function validateNewEvent(input,now=Date.now()){
  if(!equipment.some(x=>String(x.id)===String(input.equipment_id)))throw Error('Техникээ сонгоно уу.');
  if(!statusNames.includes(input.status))throw Error('Жагсаалтаас төлөвөө сонгоно уу.');
  const {start_time,end_time}=newEventTimes(input,newEventGap);
- if(Date.parse(end_time)<=Date.parse(start_time))throw Error('Дуусах цаг эхлэх цагаас хойш байх ёстой.');
- if(Date.parse(end_time)>now)throw Error('Дууссан түүхэн бүртгэл нэмнэ. Ирээдүйн цаг оруулахгүй.');
+ if(end_time&&Date.parse(end_time)<=Date.parse(start_time))throw Error('Дуусах цаг эхлэх цагаас хойш байх ёстой.');
+ if(Date.parse(start_time)>now)throw Error('Эхлэх цаг ирээдүйд байж болохгүй.');
+ if(end_time&&Date.parse(end_time)>now)throw Error('Дуусах цаг ирээдүйд байж болохгүй.');
  const operator_name=String(input.operator||'').trim();
  const comment=String(input.comment||'').trim();
  if(!comment)throw Error('Нэмж буй шалтгаан, тайлбарыг бичнэ үү.');
@@ -448,7 +449,7 @@ function showNewEvent(defaults={}){
  <label>Техник<select id="nEquipment" ${newEventGap?"disabled":""} required><option value="">Сонгох</option>${equipment.map(x=>`<option value="${esc(x.id)}"${String(x.id)===String(id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
  <label>Төлөв хайх<input id="nStatusSearch" type="search" placeholder="Төлөвийн нэр"><select id="nStatus" required><option value="">Сонгох</option>${opts(statusNames,'')}</select></label>
  <label>Эхэлсэн цаг (UTC+8)<input id="nStart" type="datetime-local" step="60" ${newEventGap?"readonly":""} value="${esc(historicalInput(defaults.start))}" required></label>
- <label>Дууссан цаг (UTC+8)<input id="nEnd" type="datetime-local" step="60" ${newEventGap?"readonly":""} value="${esc(historicalInput(defaults.end))}" required></label>
+ <label>Дуусах цаг (UTC+8) · заавал биш<input id="nEnd" type="datetime-local" step="60" ${newEventGap?"readonly":""} value="${esc(historicalInput(defaults.end))}"><span class="subtle">Хоосон бол дараагийн төлөвийн эхлэлээр дуусна. Дараагийн төлөвгүй бол нээлттэй үлдэнэ.</span></label>
  <label>Оператор (заавал биш)${editOperatorField('nOperator',id,defaults.operator||'')}<span id="nOperatorHint" class="subtle"></span></label>
  <label>SMU<input id="nSmu" type="number" min="0" step="any"></label><label>KM<input id="nKm" type="number" min="0" step="any"></label></div>
  <label>Нэмж буй шалтгаан / тайлбар<textarea id="nComment" required></textarea></label><div id="newEventError" class="error hidden"></div>
@@ -732,7 +733,7 @@ if(typeof MutationObserver!=='undefined')new MutationObserver(()=>{if($('results
 let active=null,busy=false;
 const panel=$('newEventPanel');
 const priorNew=showNewEvent;
-showNewEvent=function(){priorNew.apply(this,arguments);const info=panel.querySelector('p.subtle');if(info)info.textContent='Дууссан хугацаанд төлөв нэмнэ (UTC+8). Нэг хуучин төлөвийн дотор оруулбал өмнөх/дараах хэсгийг хадгалж хуваана. Олон төлөв дамнавал автоматаар солихгүй. Хадгалахаас өмнө өөрчлөлтийг харуулна.';};
+showNewEvent=function(){priorNew.apply(this,arguments);const info=panel.querySelector('p.subtle');if(info)info.textContent='Эхлэх цаг, төлөвөө оруулна (UTC+8). Дуусах цаг хоосон бол дараагийн төлөвтэй автоматаар залгана; дараагийн төлөвгүй бол үргэлжилж байгаа төлөв болно. Дуусах цаг өгвөл тэр хугацаанд нөхөж оруулна. Өөрчлөлтийг шалгаж байж хадгална.';};
 const priorEditor=renderEventEditor;
 renderEventEditor=function(row){priorEditor(row);const actions=$('editor').querySelector('#editEventForm .actions');if(actions){const button=document.createElement('button');button.type='button';button.className='danger';button.dataset.cancelE2=String(row.id);button.textContent='Төлөв цуцлах';actions.append(button);}};
 const dialog=document.createElement('dialog');dialog.id='previewE2';
@@ -741,7 +742,7 @@ document.body.append(dialog);
 function stamp(v){return v?historicalInput(v).replace('T',' '):'Нээлттэй';}
 function detail(row){if(!row)return '—';return '<b>'+esc(row.status||'—')+'</b><br>'+esc(stamp(row.start_time))+' → '+esc(stamp(row.end_time))+'<br>Оператор: '+esc(row.operator_name||'—')+' · Моточаг: '+esc(row.smu??'—')+' · Км: '+esc(row.km??'—')+(row.comment?'<br>'+esc(row.comment):'');}
 const verbs={update:'Хугацаа өөрчлөх',resume:'Хуучин төлөвийг үргэлжлүүлэх',insert:'Шинэ төлөв',cancel:'Цуцлах · түүхэнд хадгална'};
-async function rpc(mode,operation,input,expected,request){const {data,error}=await sb.rpc('ets_edit_event_e2',{p_mode:mode,p_operation:operation,p_input:input,p_expected:expected||null,p_request:request||null});if(error)throw error;if(!data?.ok)throw Error('Хадгалалтын баталгаа ирсэнгүй.');return data;}
+async function rpc(mode,operation,input,expected,request){const {data,error}=await sb.rpc('ets_edit_event_e22',{p_mode:mode,p_operation:operation,p_input:input,p_expected:expected||null,p_request:request||null});if(error)throw error;if(!data?.ok)throw Error('Хадгалалтын баталгаа ирсэнгүй.');return data;}
 async function preview(operation,input){
  if(active||busy)throw Error('Нээгдсэн шалгалтын цонхоо эхлээд дуусгана уу.');
  if(!canUse())throw Error('Засах эрхээ шалгана уу.');
@@ -751,7 +752,7 @@ async function preview(operation,input){
   $('e2Equipment').textContent=data.plan.equipment_name+' · UTC+8 · Шалтгаан: '+input.reason;
   $('e2Summary').textContent='DATA-ийн одоогийн төлөв: '+(data.plan.summary_before||'Нээлттэй төлөвгүй')+' → '+(data.plan.summary_after||'Нээлттэй төлөвгүй');
   $('e2Rows').innerHTML='<table><thead><tr><th>Үйлдэл / ID</th><th>Өмнө</th><th>Дараа</th></tr></thead><tbody>'+data.plan.changes.map(c=>'<tr><td>'+esc(verbs[c.kind]||c.kind)+'<br>'+esc(c.before?.id?'ID '+c.before.id:'Шинэ ID')+'</td><td>'+detail(c.before)+'</td><td>'+detail(c.after)+'</td></tr>').join('')+'</tbody></table>';
-  hideError('e2Error');$('e2Message').textContent='Хадгалах хүртэл бүртгэл өөрчлөгдөхгүй.';$('e2Save').disabled=false;$('e2Save').textContent='Баталгаажуулж хадгалах';dialog.showModal();
+  hideError('e2Error');$('e2Message').textContent=(operation==='insert'&&data.plan.auto_end?(data.plan.next_boundary?'Дуусах цагийг дараагийн ID '+data.plan.next_boundary.id+' төлөвийн эхлэлээр автоматаар залгана. ':'Дараагийн төлөв алга. Шинэ төлөв нээлттэй үргэлжилнэ. '):'')+'Хадгалах хүртэл бүртгэл өөрчлөгдөхгүй.';$('e2Save').disabled=false;$('e2Save').textContent='Баталгаажуулж хадгалах';dialog.showModal();
  }finally{busy=false;}
 }
 // Capture before the legacy non-transactional add handler. Never perform both writes.
