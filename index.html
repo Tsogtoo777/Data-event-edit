@@ -61,7 +61,7 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
 .status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
 .status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style></head>
 <body>
-<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
+<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.1</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
 <section id="loginView" class="panel login">
   <h2 style="margin-top:0;color:var(--orange)">Нэвтрэх</h2>
@@ -192,7 +192,7 @@ const STATUS_GROUPS = [
   ]
 ];
 const PRODUCTIVE_STATUS = "Б Бүтээлтэй | ЭЦС";
-function operatorRequired(status){const group=STATUS_GROUPS.findIndex(g=>g.includes(status));return group!==2 && group!==3;}
+function operatorRequired(status){if(['Операторгүй | ЭЦС','Ажиллах хүнгүй | ЭЦС'].includes(String(status||'').trim()))return false;const group=STATUS_GROUPS.findIndex(g=>g.includes(status));return group!==2 && group!==3;}
 const EDITOR_ROLES = new Set(["event_editor","master","dispatcher","management","admin"]);
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let currentUser = null, currentTab = "events", equipment = [], statusNames = [], events = [], production = [], editing = null, toastTimer = null;
