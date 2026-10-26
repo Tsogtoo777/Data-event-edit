@@ -803,5 +803,59 @@ $('e2Save').onclick=async function(){
 window.addEventListener('beforeunload',e=>{if(busy||active?.uncertain){e.preventDefault();e.returnValue='';}});
 })();
 
-</script></body>
+</script>
+<script id="edit-status-search-20261026">
+// Search only the server-loaded status catalog. Does not write or rename records.
+(function(){
+'use strict';
+const previousShow=showNewEvent;
+const normalize=v=>String(v||'').normalize('NFKC').toLocaleLowerCase().replace(/\s+/g,' ').trim();
+showNewEvent=function(){
+ previousShow.apply(this,arguments);
+ const input=$('nStatusSearch'),select=$('nStatus');
+ if(!input||!select||input.dataset.searchReady)return;
+ input.dataset.searchReady='1';input.placeholder='Төлөвийн нэр бичиж хайх (жишээ: гидр, цай)';input.autocomplete='off';
+ const list=document.createElement('div');list.id='newStatusMatches';list.setAttribute('role','listbox');
+ list.style.cssText='max-height:230px;overflow:auto;border:1px solid #52616d;border-radius:8px;margin-top:6px;';
+ const count=document.createElement('small');count.className='subtle';count.setAttribute('aria-live','polite');
+ select.insertAdjacentElement('beforebegin',list);list.insertAdjacentElement('afterend',count);
+ select.style.display='none';input.setAttribute('role','combobox');input.setAttribute('aria-controls',list.id);input.setAttribute('aria-autocomplete','list');input.setAttribute('aria-expanded','true');
+ let matches=[],active=0;
+ function choose(name){
+  if(!statusNames.includes(name))return;
+  select.innerHTML='<option value="">Сонгох</option>'+opts(statusNames,'');select.value=name;
+  input.value=name;list.hidden=true;input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');
+  count.textContent='Сонгосон: '+name;refreshNewOperator();
+ }
+ function highlight(){for(const [i,button] of [...list.querySelectorAll('button')].entries()){
+  button.style.background=i===active?'#344a5f':'#18212a';button.setAttribute('aria-selected',String(i===active));
+  if(i===active){input.setAttribute('aria-activedescendant',button.id);button.scrollIntoView({block:'nearest'});}
+ }}
+ function render(){
+  const q=normalize(input.value);matches=statusNames.filter(name=>normalize(name).includes(q));active=0;
+  list.replaceChildren();list.hidden=false;input.setAttribute('aria-expanded','true');
+  for(const [i,name] of matches.entries()){
+   const button=document.createElement('button');button.type='button';button.id='statusMatch-'+i;button.setAttribute('role','option');button.tabIndex=-1;
+   button.textContent=name;button.style.cssText='display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #36424c;border-radius:0;padding:10px;color:#f3f6f8;font-weight:500;';
+   button.addEventListener('click',()=>choose(name));list.appendChild(button);
+  }
+  if(!matches.length){list.textContent='Тохирох төлөв олдсонгүй. Өөр үгээр хайна уу.';input.removeAttribute('aria-activedescendant');}
+  count.textContent=matches.length+' төлөв · ↑ ↓ сонгох · Enter батлах';highlight();
+ }
+ input.addEventListener('input',event=>{event.stopImmediatePropagation();select.value='';render();},true);
+ input.addEventListener('focus',()=>{if(!select.value)render();});
+ input.addEventListener('keydown',event=>{
+  if(event.isComposing)return;
+  if(event.key==='Escape'){event.preventDefault();list.hidden=true;input.setAttribute('aria-expanded','false');return;}
+  if(event.key==='Enter'){event.preventDefault();event.stopPropagation();if(!list.hidden&&matches[active])choose(matches[active]);return;}
+  if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();if(list.hidden){render();return;}active=Math.max(0,Math.min(matches.length-1,active+(event.key==='ArrowDown'?1:-1)));highlight();}
+ });
+ // Capture before the older delegated filter; it must not keep a stale selected status.
+ input.addEventListener('change',event=>{event.stopImmediatePropagation();if(input.value!==select.value)select.value='';},true);
+ const initial=select.value;if(initial){input.value=initial;choose(initial);}else render();
+};
+})();
+</script>
+
+</body>
 </html>
