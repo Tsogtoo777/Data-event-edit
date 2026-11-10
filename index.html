@@ -1022,6 +1022,62 @@ async function tick(){
  }catch(_){syncHealth.fail();/* A failed background read must not replace the current rows. */}
  finally{busy=false;}
 }
+
+// Read-only, event-driven invalidation. Existing 15-second polling remains the fallback.
+// PostgreSQL tables must be in the Supabase realtime publication to emit changes.
+function installEttsRealtimeBridge(client,getUserId,source){
+ const tables=['equipment_events','equipment_operator_names','equipment','production_logs','status_types'];
+ const state={channel:null,userId:null,status:'idle',retryAfter:0,refreshTimer:null,lastEventAt:null,lastSubscribedAt:null};
+ let sequence=0;
+ function stop(){
+  if(state.refreshTimer){clearTimeout(state.refreshTimer);state.refreshTimer=null;}
+  const previous=state.channel;
+  state.channel=null;state.userId=null;state.status='idle';state.retryAfter=0;
+  if(previous)Promise.resolve(client.removeChannel(previous)).catch(()=>{});
+ }
+ function requestRead(isChange=false){
+  if(isChange)state.lastEventAt=Date.now();
+  if(!getUserId()||document.hidden)return;
+  if(state.refreshTimer)clearTimeout(state.refreshTimer);
+  state.refreshTimer=setTimeout(()=>{
+   state.refreshTimer=null;
+   if(getUserId()&&!document.hidden)void tick();
+  },1500);
+ }
+ function onFailure(channel){
+  if(state.channel!==channel)return;
+  state.channel=null;state.status='fallback';state.retryAfter=Date.now()+15000;
+  Promise.resolve(client.removeChannel(channel)).catch(()=>{});
+ }
+ function ensure(){
+  const uid=getUserId();
+  if(!uid){if(state.channel||state.userId)stop();return;}
+  if(state.userId&&state.userId!==uid)stop();
+  if(state.channel||Date.now()<state.retryAfter||!navigator.onLine)return;
+  const channel=client.channel('ets-'+source+'-'+(++sequence));
+  state.channel=channel;state.userId=uid;state.status='connecting';
+  for(const table of tables)channel.on('postgres_changes',{schema:'public',table,event:'*'},()=>requestRead(true));
+  try{
+   channel.subscribe(status=>{
+    if(state.channel!==channel)return;
+    if(status==='SUBSCRIBED'){
+     state.status='subscribed';state.lastSubscribedAt=Date.now();requestRead();
+    }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')onFailure(channel);
+   });
+  }catch(_){onFailure(channel);}
+ }
+ client.auth.onAuthStateChange(event=>{
+  if(event==='SIGNED_OUT')stop();
+  else if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='INITIAL_SESSION')setTimeout(ensure,0);
+ });
+ setInterval(ensure,8000);
+ window.addEventListener('focus',()=>{ensure();requestRead();});
+ window.addEventListener('online',()=>{state.retryAfter=0;ensure();requestRead();});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden){ensure();requestRead();}});
+ ensure();
+ window.ETTSRealtimeStatus=()=>({status:state.status,tables:[...tables],lastEventAt:state.lastEventAt,lastSubscribedAt:state.lastSubscribedAt,fallbackIntervalMs:interval});
+}
+installEttsRealtimeBridge(sb,()=>canUse()?currentUser.id:null,'edit');
 setInterval(tick,interval);
 window.addEventListener('focus',tick);
 window.addEventListener('online',tick);
