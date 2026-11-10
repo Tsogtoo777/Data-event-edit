@@ -59,7 +59,74 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
 .status-tone-4{--status-color:#EC8FC2;background:color-mix(in srgb,#EC8FC2 14%,#252a32)}
 .status-tone-5{--status-color:#DC4444;background:color-mix(in srgb,#DC4444 14%,#252a32)}
 .status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
-.status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style></head>
+.status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style>
+<style id="etts-mobile-ux-d4">
+/* D4 progressive mobile record cards; preserves desktop data table, status colors and edit/RPC logic. */
+:root{--etts-touch:44px;--etts-radius:11px}
+@media(max-width:760px){
+ html{scroll-padding-top:12px}
+ body{font-size:14px;line-height:1.5}
+ header{position:relative;top:auto;flex-wrap:wrap;gap:8px;padding:12px}
+ header h1{font-size:18px}
+ header small{display:block;font-size:12px;line-height:1.4}
+ header>.actions{width:100%;justify-content:space-between}
+ header #who{min-width:0;max-width:65vw;overflow-wrap:anywhere}
+ main{padding:12px;max-width:none}
+ .panel,.login,.entry,.equipment-group{border-radius:var(--etts-radius)}
+ .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+ .tabs button{min-height:var(--etts-touch);font-size:14px;line-height:1.3;padding:10px 8px}
+ .tabs #refreshBtn{grid-column:1/-1}
+ #filters .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ #filters label{min-width:0;font-size:13px}
+ #filters input,#filters select{min-width:0;min-height:var(--etts-touch);font-size:15px}
+ .desktop-tools{display:flex;gap:8px;width:100%}
+ .desktop-tools button,.equipment-group>summary button,.group-more button{min-height:var(--etts-touch);font-size:13px}
+ .equipment-group>summary{min-height:var(--etts-touch);padding:12px;align-items:center;gap:7px}
+ .equipment-group>summary .group-count{font-size:12px}
+ .desktop-table-wrap{max-height:none;overflow:visible}
+ .event-table{display:block;min-width:0!important;width:100%;font-size:14px;border-collapse:separate}
+ .event-table thead{display:none}
+ .event-table tbody{display:grid;gap:10px;padding:10px}
+ .event-table tr[data-event-row]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;background:#252d37;border:1px solid #4c5868;border-radius:12px;padding:12px;box-shadow:0 3px 9px #0002}
+ .event-table tr[data-event-row].desktop-selected{border-color:#ff842e;box-shadow:inset 3px 0 #ff842e}
+ .event-table tr[data-event-row]>td{display:block;min-width:0;max-width:none;padding:0;border:0;background:transparent;white-space:normal;text-align:left;font-size:13px;overflow-wrap:anywhere}
+ .event-table tr[data-event-row]>td::before{display:block;color:#b8c5d3;font-size:11px;line-height:1.35;font-weight:600;margin-bottom:3px}
+ .event-table tr[data-event-row]>td:nth-child(1)::before{content:"ID"}
+ .event-table tr[data-event-row]>td:nth-child(2)::before{content:"Эхэлсэн"}
+ .event-table tr[data-event-row]>td:nth-child(3)::before{content:"Дууссан"}
+ .event-table tr[data-event-row]>td:nth-child(4)::before{content:"Хугацаа · мин"}
+ .event-table tr[data-event-row]>td:nth-child(5)::before{content:"Төлөв"}
+ .event-table tr[data-event-row]>td:nth-child(6)::before{content:"Оператор"}
+ .event-table tr[data-event-row]>td:nth-child(7)::before{content:"Моточаг"}
+ .event-table tr[data-event-row]>td:nth-child(8)::before{content:"Км"}
+ .event-table tr[data-event-row]>td:nth-child(9)::before{content:"Тайлбар"}
+ .event-table tr[data-event-row]>td:nth-child(10)::before{content:"Цагийн шалгалт"}
+ .event-table tr[data-event-row]>td:nth-child(11)::before{content:"Үйлдэл"}
+ .event-table tr[data-event-row]>td:nth-child(5){grid-column:1/-1;order:-4;padding-bottom:8px;border-bottom:1px solid #445061}
+ .event-table tr[data-event-row]>td:nth-child(2),.event-table tr[data-event-row]>td:nth-child(3){order:-3}
+ .event-table tr[data-event-row]>td:nth-child(4),.event-table tr[data-event-row]>td:nth-child(6){order:-2}
+ .event-table tr[data-event-row]>td:nth-child(9),.event-table tr[data-event-row]>td:nth-child(10),.event-table tr[data-event-row]>td:nth-child(11){grid-column:1/-1}
+ .event-table tr[data-event-row]>td:nth-child(9){order:3}
+ .event-table tr[data-event-row]>td:nth-child(10){order:4}
+ .event-table tr[data-event-row]>td:nth-child(11){order:5;padding-top:8px;border-top:1px solid #445061}
+ .event-table .comment,.event-table .operator{max-width:none;white-space:normal;text-overflow:clip}
+ .event-table .status-pill{display:inline-block;max-width:100%;white-space:normal;font-size:13px;padding:7px 9px}
+ .event-table .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;flex-wrap:wrap}
+ .event-table .actions button{min-height:var(--etts-touch);font-size:14px;padding:9px 8px}
+ #editor:not(.hidden),#newEventPanel:not(.hidden){position:static;width:auto;max-height:none;margin-right:0;overflow:visible}
+ #editor input,#editor select,#editor textarea,#newEventPanel input,#newEventPanel select,#newEventPanel textarea{min-height:var(--etts-touch);font-size:15px}
+ #editor button,#newEventPanel button{min-height:var(--etts-touch)}
+ #previewE2{width:calc(100% - 20px);max-height:92dvh;padding:12px}
+}
+@media(max-width:450px){
+ #filters .row{grid-template-columns:1fr}
+ .tabs button{font-size:13px}
+ .event-table tbody{padding:8px}
+ .event-table tr[data-event-row]{padding:10px;gap:8px}
+ .event-table .actions{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
 <body>
 <header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.5</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
