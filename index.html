@@ -61,7 +61,7 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
 .status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
 .status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style></head>
 <body>
-<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.3</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
+<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.4</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
 <section id="loginView" class="panel login">
   <h2 style="margin-top:0;color:var(--orange)">Нэвтрэх</h2>
@@ -198,6 +198,50 @@ const EDITOR_ROLES = new Set(["event_editor","master","dispatcher","management",
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const filterDates={events:"",production:""};
 let initializeEventView;
+let eventWindow={key:'',state:'idle'},viewLoad=0;
+function eventScope(){return {day:currentTab==='events'?$('filterDate').value:filterDates.events,shift:$('desktopShift').value};}
+function eventScopeKey({day,shift}){return day+'|'+shift;}
+async function fetchShiftEvents(client,lo,hi,stillCurrent=()=>true){
+ const rows=[],size=500;
+ for(let offset=0;stillCurrent();offset+=size){
+  const {data,error}=await client.from('equipment_events').select('*')
+   .lt('start_time',new Date(hi).toISOString())
+   .or('end_time.is.null,end_time.gt.'+new Date(lo).toISOString())
+   .order('start_time',{ascending:true}).order('id',{ascending:true}).range(offset,offset+size-1);
+  if(error)throw error;
+  if(!Array.isArray(data))throw Error('Төлөвийн бүртгэлийн хариу буруу.');
+  rows.push(...data);
+  if(data.length<size)return rows;
+ }
+ return null;
+}
+function loadEventWindow(force=false){
+ if(!canUse())return Promise.resolve(false);
+ const scope=eventScope(),key=eventScopeKey(scope);
+ if(!force&&eventWindow.key===key){
+  if(eventWindow.state==='loading')return eventWindow.promise;
+  if(eventWindow.state==='ready')return Promise.resolve(true);
+ }
+ const request={key,state:scope.day?'loading':'idle'},user=currentUser;
+ eventWindow=request;events=[];
+ if(currentTab==='events')renderResults();
+ if(!scope.day)return Promise.resolve(false);
+ request.promise=(async()=>{
+  const valid=()=>eventWindow===request&&currentUser===user;
+  try{
+   const [lo,hi]=DesktopEditCore.bounds(scope.day,scope.shift);
+   const rows=await fetchShiftEvents(sb,lo,hi,valid);
+   if(!valid())return false;
+   events=rows;request.state='ready';
+   if(currentTab==='events')renderResults();
+   return true;
+  }catch(error){
+   if(valid()){request.state='error';request.error=error.message||String(error);if(currentTab==='events')renderResults();}
+   return false;
+  }
+ })();
+ return request.promise;
+}
 let currentUser = null, currentTab = "events", equipment = [], statusNames = [], events = [], production = [], editing = null, toastTimer = null;
 const $ = id => document.getElementById(id);
 function esc(v){return String(v ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -272,25 +316,25 @@ function productionEquipment(){return equipment.filter(e=>productionEquipmentKin
 
 function canUse(){return currentUser&&canEditUser(currentUser);}
 async function checkSession(){const {data,error}=await sb.auth.getSession();if(error){showError("loginError",error.message);return;}if(data.session)await acceptSession(data.session);else showLogin();}
-function showLogin(){currentUser=null;$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');$('logoutBtn').classList.add('hidden');$('who').textContent='';}
+function showLogin(){viewLoad++;eventWindow={key:'',state:'idle'};events=[];currentUser=null;$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');$('logoutBtn').classList.add('hidden');$('who').textContent='';}
 async function acceptSession(session){const user=session.user;if(!canEditUser(user)){await sb.auth.signOut();showLogin();showError('loginError','Энэ хэрэглэгчид Data Event Edit ашиглах эрх олгогдоогүй байна. Supabase-ийн app_metadata.role утгыг шалгана уу.');return;}
  currentUser=user;initializeEventView();$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('logoutBtn').classList.remove('hidden');$('who').textContent=user.email||'';hideError('loginError');await loadData();}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();hideError('loginError');const btn=$('loginBtn');btn.disabled=true;btn.textContent='Нэвтэрч байна…';try{const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)throw error;await acceptSession(data.session);}catch(err){showError('loginError',err.message||String(err));}finally{btn.disabled=false;btn.textContent='Нэвтрэх';}});
 $('logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();showLogin();});
-async function loadData(){hideError('loadError');$('results').innerHTML='<p class="subtle">Өгөгдөл ачаалж байна…</p>';try{
- const [eqR,stR,evR,prR]=await Promise.all([
+async function loadData(){const ticket=++viewLoad,user=currentUser;hideError('loadError');$('results').innerHTML='<p class="subtle">Өгөгдөл ачаалж байна…</p>';try{
+ const [eqR,stR,prR]=await Promise.all([
   sb.from('equipment').select('*').order('name'),
   sb.from('status_types').select('name').order('id'),
-  sb.from('equipment_events').select('*').order('start_time',{ascending:false}).limit(1000),
   sb.from('production_logs').select('*').order('created_at',{ascending:false}).limit(2000)
  ]);
+ if(ticket!==viewLoad||currentUser!==user)return;
  if(eqR.error)throw new Error('equipment унших алдаа: '+eqR.error.message);
  equipment=eqR.data||[];statusNames=[...new Set([...((stR.data||[]).map(x=>x.name).filter(name=>typeof name==='string' && (name.trim().endsWith('| ЭЦС') || name.trim()==='IT Сүлжээний асуудал'))),PRODUCTIVE_STATUS])];
- const fails=[];if(evR.error)fails.push('Төлөвийн хүснэгт: '+evR.error.message);if(prR.error)fails.push('Бүтээлийн хүснэгт: '+prR.error.message);
- events=evR.data||[];production=prR.data||[];
+ const fails=[];if(prR.error)fails.push('Бүтээлийн хүснэгт: '+prR.error.message);
+ production=prR.data||[];
  if(fails.length)showError('loadError',fails.join('\n')+'\nRLS SELECT policy болон хүснэгтийн нэрийг шалгана уу.');
- setupHourFilter();populateEquipmentFilter();renderResults();
- }catch(err){showError('loadError',err.message||String(err));$('results').innerHTML='<p class="subtle">Өгөгдөл уншиж чадсангүй.</p>';}}
+ setupHourFilter();populateEquipmentFilter();if(currentTab==='events')await loadEventWindow(true);else renderResults();
+ }catch(err){if(ticket!==viewLoad||currentUser!==user)return;showError('loadError',err.message||String(err));$('results').innerHTML='<p class="subtle">Өгөгдөл уншиж чадсангүй.</p>';}}
 function setupHourFilter(){
  const sel=$('filterHour');
  if(sel.options.length===1)sel.innerHTML='<option value="">Бүх цаг</option>'+Array.from({length:24},(_,i)=>`<option value="${i}">${String(i).padStart(2,'0')}:00–${String((i+1)%24).padStart(2,'0')}:00</option>`).join('');
@@ -424,9 +468,10 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
  closeEditor();tell('Өөрчлөлт хадгалагдлаа.');await loadData();
  }catch(err){tell('Хадгалах алдаа: '+(err.message||String(err)),true);}finally{if(button){button.disabled=false;button.textContent='Өөрчлөлт хадгалах';}}});
 function setFilterTab(tab){if(currentTab!==tab){filterDates[currentTab]=$('filterDate').value;currentTab=tab;$('filterDate').value=filterDates[tab];}}
-function switchTab(tab){setFilterTab(tab);document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();setupHourFilter();populateEquipmentFilter();renderResults();}
+function switchTab(tab){setFilterTab(tab);document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();setupHourFilter();populateEquipmentFilter();renderResults();if(tab==='events')void loadEventWindow();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
-['filterDate','filterHour','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',()=>renderResults()));$('refreshBtn').addEventListener('click',()=>loadData());
+$('filterDate').addEventListener('change',()=>{if(currentTab==='events')void loadEventWindow();else renderResults();});
+['filterHour','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',()=>renderResults()));$('refreshBtn').addEventListener('click',()=>loadData());
 // Historical additions only. Never shortens or updates an existing record.
 let newEventBusy=false, newEventUncertain=false, newEventGap=null;
 function historicalISO(value){
@@ -627,15 +672,37 @@ $('editor').addEventListener('change',e=>{if(e.target.id==='eStart')previewEditC
 
 // DATA review links only read the target; saving still requires the existing Save action.
 const reviewParams=new URLSearchParams(location.search);
-const reviewContext={date:reviewParams.get('date')||'',equipment:reviewParams.get('equipment')||'',event:reviewParams.get('event')||''};
+const reviewContext={date:reviewParams.get('date')||'',shift:reviewParams.get('shift')||'all',equipment:reviewParams.get('equipment')||'',event:reviewParams.get('event')||''};
 let reviewOpened=false;
 function validReviewId(v){return /^[a-zA-Z0-9_-]{1,100}$/.test(v);}
-async function openReviewContext(){if(reviewOpened||!canUse())return;if(!reviewContext.event&&!reviewContext.equipment)return;
- try{if(!/^\d{4}-\d{2}-\d{2}$/.test(reviewContext.date)||!validReviewId(reviewContext.equipment)||(reviewContext.event&&!validReviewId(reviewContext.event)))throw Error('DATA холбоосын утга буруу.');
- if(!equipment.some(e=>String(e.id)===reviewContext.equipment))throw Error('Холбоосын техник лавлахад олдсонгүй.');setFilterTab('events');populateEquipmentFilter();setupHourFilter();$('filterEquipment').value=reviewContext.equipment;$('filterText').value='';$('filterDate').value='';$('desktopShift').value='all';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));
- if(reviewContext.event){const {data,error}=await sb.from('equipment_events').select('*').eq('id',reviewContext.event).maybeSingle();if(error)throw error;if(!data)throw Error('Бүртгэл олдсонгүй эсвэл харах эрх хүрэхгүй байна.');if(String(data.equipment_id)!==reviewContext.equipment)throw Error('Техник, бүртгэлийн ID тохирохгүй.');events=events.filter(e=>String(e.id)!==String(data.id));events.unshift(data);renderResults();reviewOpened=true;startEdit('event',data.id);tell('DATA шалгалтаас ID '+data.id+' нээлээ. Хадгалах хүртэл өөрчлөлт орохгүй.');}
- else{const a=new Date(reviewContext.date+'T07:00:00+08:00');if(!Number.isFinite(a.getTime()))throw Error('Огноо буруу.');const b=new Date(a.getTime()+86400000),rows=[];for(let offset=0;;offset+=500){const {data,error}=await sb.from('equipment_events').select('*').eq('equipment_id',reviewContext.equipment).lt('start_time',b.toISOString()).or('end_time.is.null,end_time.gt.'+a.toISOString()).order('start_time',{ascending:true}).order('id',{ascending:true}).range(offset,offset+499);if(error)throw error;rows.push(...(data||[]));if((data||[]).length<500)break;}events=rows;renderResults();reviewOpened=true;tell(reviewContext.date+' · 07:00–дараагийн 07:00 · DATA шалгалтын техникээр шүүлээ.');}
- }catch(e){showError('loadError','DATA холбоос нээсэнгүй: '+e.message);}}
+function validReviewContext(){
+ if(!validReviewId(reviewContext.equipment)||(reviewContext.event&&!validReviewId(reviewContext.event)))return false;
+ try{return !!DesktopEditCore.bounds(reviewContext.date,reviewContext.shift);}catch{return false;}
+}
+async function openReviewContext(){
+ if(reviewOpened||!canUse()||(!reviewContext.event&&!reviewContext.equipment))return;
+ try{
+  if(!validReviewContext())throw Error('DATA холбоосын утга буруу.');
+  if(!equipment.some(e=>String(e.id)===reviewContext.equipment))throw Error('Холбоосын техник лавлахад олдсонгүй.');
+  // If the user changed the scope during loading, keep their selection.
+  if(currentTab!=='events'||eventScopeKey(eventScope())!==eventScopeKey({day:reviewContext.date,shift:reviewContext.shift}))return;
+  $('filterEquipment').value=reviewContext.equipment;
+  if(!await loadEventWindow())return;
+  const request=eventWindow,user=currentUser;
+  if(reviewContext.event){
+   let row=findCurrent('event',reviewContext.event);
+   if(!row){
+    const {data,error}=await sb.from('equipment_events').select('*').eq('id',reviewContext.event).maybeSingle();
+    if(request!==eventWindow||currentUser!==user||currentTab!=='events')return;
+    if(error)throw error;row=data;
+   }
+   if(!row)throw Error('Бүртгэл олдсонгүй эсвэл харах эрх хүрэхгүй байна.');
+   if(String(row.equipment_id)!==reviewContext.equipment)throw Error('Техник, бүртгэлийн ID тохирохгүй.');
+   if(!findCurrent('event',reviewContext.event))events=[...events,row];
+   renderResults();reviewOpened=true;startEdit('event',row.id);tell('DATA шалгалтаас ID '+row.id+' нээлээ. Хадгалах хүртэл өөрчлөлт орохгүй.');
+  }else{renderResults();reviewOpened=true;}
+ }catch(e){showError('loadError','DATA холбоос нээсэнгүй: '+e.message);}
+}
 const beforeReviewLoad=loadData;loadData=async function(){await beforeReviewLoad.apply(this,arguments);await openReviewContext();};
 
 </script>
@@ -717,7 +784,7 @@ const shiftLabel=document.createElement('label');shiftLabel.id='desktopShiftWrap
 const dateLabel=$('filterDate').parentElement;
 dateLabel.after(shiftLabel);dateLabel.firstChild.textContent='Ээлжийн огноо';
 initializeEventView=function(){
- const {day,shift}=C.currentShift();
+ const {day,shift}=!reviewOpened&&validReviewContext()?{day:reviewContext.date,shift:reviewContext.shift}:C.currentShift();
  currentTab='events';filterDates.events=day;filterDates.production='';
  $('filterDate').value=day;$('desktopShift').value=shift;$('filterEquipment').value='';$('filterText').value='';$('filterHour').value='';
  openGroups.clear();groupRows.clear();loadedCounts.clear();selectedId=null;
@@ -744,11 +811,19 @@ function fillGroup(details,more=false){
 renderResults=function(){
  const eventsTab=currentTab==='events';dateLabel.firstChild.textContent=eventsTab?'Ээлжийн огноо':'Огноо';shiftLabel.classList.toggle('hidden',!eventsTab);shiftLabel.style.display=eventsTab?'block':'none';
  if(!eventsTab)return previousRender.apply(this,arguments);
+ const scope=eventScope();
+ if(!scope.day){$('results').innerHTML='<p class="subtle">Ээлжийн огноогоо сонгоно уу.</p>';return;}
+ if(eventWindow.key!==eventScopeKey(scope)||eventWindow.state!=='ready'){
+  $('results').innerHTML=eventWindow.key===eventScopeKey(scope)&&eventWindow.state==='error'
+   ?'<p class="error">Ээлжийн бүртгэл татаж чадсангүй: '+esc(eventWindow.error)+' · «Шинэчлэх» дарж дахин оролдоно уу.</p>'
+   :'<p class="subtle" role="status">Сонгосон ээлжийн бүртгэл татаж байна…</p>';
+  return;
+ }
  renderNow=Date.now();let rows;try{renderWindow=C.bounds(options().day,options().shift);rows=filteredRows();}catch(error){$('results').innerHTML='<p class="error">'+esc(error.message)+'</p>';return;}
  groupRows.clear();for(const row of rows){const key=String(row.equipment_id);if(!groupRows.has(key))groupRows.set(key,[]);groupRows.get(key).push(row);}
  for(const list of groupRows.values())list.sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time)||String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
  analysis=C.analyse(events,renderWindow,renderNow);
- let html='<div class="desktop-top"><h2>Төлөвийн бүртгэл</h2><div class="desktop-tools"><small>'+groupRows.size+' техник · '+rows.length+' мөр</small><button type="button" data-groups-open>Бүгдийг дэлгэх</button><button type="button" data-groups-close>Бүгдийг хураах</button></div></div><p class="desktop-scope">Мөр дээр дарж засна. Минут нь сонгосон ээлжид ногдох хугацаа. Завсар/давхардлыг татсан бүртгэлүүдийн хооронд шалгав; ээлж бүрэн эсэхийн баталгаа биш.'+(events.length>=1000?' Сүүлийн 1000 төлөв татсан тул хуучин огнооны мэдээлэл дутуу байж болно.':'')+'</p>';
+ let html='<div class="desktop-top"><h2>Төлөвийн бүртгэл</h2><div class="desktop-tools"><small>'+groupRows.size+' техник · '+rows.length+' мөр</small><button type="button" data-groups-open>Бүгдийг дэлгэх</button><button type="button" data-groups-close>Бүгдийг хураах</button></div></div><p class="desktop-scope">Мөр дээр дарж засна. Минут нь сонгосон ээлжид ногдох хугацаа. Завсар, давхардлыг сонгосон ээлжийн бүртгэлүүдийн хооронд шалгав.'+'</p>';
  if(!rows.length)html+='<div class="panel subtle">Тохирох бүртгэл олдсонгүй. Огноо, техник, хайлтаа шалгана уу.</div>';
  const groups=[...groupRows].sort((a,b)=>eqName(a[1][0].equipment_id).localeCompare(eqName(b[1][0].equipment_id),'mn',{numeric:true}));
  for(const [key,list] of groups){const flags=list.flatMap(row=>analysis.get(String(row.id))||[]),gaps=flags.filter(f=>f.kind==='gap').length,overlaps=flags.filter(f=>f.kind==='overlap'||f.kind==='invalid').length;
@@ -766,7 +841,7 @@ $('results').addEventListener('click',event=>{
  const row=event.target.closest('[data-event-row]');if(!row)return;selectRow(row.dataset.eventRow);if(event.target.closest('button,a,input,select,textarea'))return;if(row.tabIndex>=0)startEdit('event',row.dataset.eventRow);
 });
 $('results').addEventListener('keydown',event=>{if(event.target.matches('[data-event-row]')&&(event.key==='Enter'||event.key===' ')){event.preventDefault();if(!event.repeat&&event.target.tabIndex>=0){selectRow(event.target.dataset.eventRow);startEdit('event',event.target.dataset.eventRow);}}});
-$('desktopShift').addEventListener('change',()=>renderResults());
+$('desktopShift').addEventListener('change',()=>{if(currentTab==='events')void loadEventWindow();});
 if(typeof MutationObserver!=='undefined')new MutationObserver(()=>{if($('results').querySelector('.equipment-group'))for(const d of $('results').querySelectorAll('.equipment-group'))if(editing?.type==='event'&&groupRows.get(d.dataset.equipmentGroup)?.some(row=>String(row.id)===String(editing.row.id)))d.open=true;}).observe($('editor'),{attributes:true,attributeFilter:['class']});
 })();
 
