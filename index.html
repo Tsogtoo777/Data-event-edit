@@ -125,6 +125,31 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
  .event-table tr[data-event-row]{padding:10px;gap:8px}
  .event-table .actions{grid-template-columns:1fr 1fr}
 }
+
+/* D4.1: compact mobile cards; warnings stay visible, secondary fields are expandable. */
+.mobile-expand-button{display:none}
+@media(max-width:760px){
+ .equipment-group>summary{display:flex;flex-wrap:wrap;gap:8px 10px}
+ .equipment-group>summary>strong{flex:1 1 185px;min-width:0;overflow-wrap:anywhere;line-height:1.35;font-size:15px}
+ .equipment-group>summary>.group-count{flex:0 0 auto;white-space:nowrap;min-width:max-content;font-size:12px}
+ .equipment-group>summary>button[data-group-add]{flex:1 1 100%;width:100%;min-height:44px}
+ .equipment-group>summary>.group-warning,.equipment-group>summary>.group-alert{flex:0 0 auto}
+ .event-table tbody{gap:9px}
+ .event-table tr[data-event-row]{gap:7px;padding:10px}
+ .event-table tr[data-event-row]>td::before{font-size:11px;margin-bottom:2px}
+ .event-table tr[data-event-row]>td:nth-child(5){padding-bottom:6px}
+ .event-table tr[data-event-row]>td:nth-child(11){padding-top:7px}
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(1),
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(7),
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(8),
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(9){display:none}
+ .event-table tr[data-event-row]>td:nth-child(10):empty{display:none}
+ .event-table .actions button[data-audit-row]{display:none}
+ .event-table tr.mobile-expanded .actions button[data-audit-row]{display:block}
+ .event-table .actions .mobile-expand-button{display:block;background:#364252;border-color:#6e7c90;color:#f0f4f9}
+ .event-table .actions .mobile-expand-button:focus-visible{outline:2px solid #ffad70;outline-offset:2px}
+ .event-table .status-pill{padding:6px 9px}
+}
 </style>
 </head>
 <body>
@@ -864,10 +889,12 @@ function options(){return {day:$('filterDate').value,shift:$('desktopShift').val
 filteredRows=function(){return currentTab==='events'?C.filter(events,options(),Date.now(),eqName):previousFilter.apply(this,arguments);};
 const cleanStatus=s=>String(s||'Төлөвгүй').split('|')[0].trim();
 function statusPill(status){const i=DataStatusCatalog.index(status === "IT Хүлээлт | ЭЦС" ? "IT Сүлжээний асуудал" : status);return '<span class="status-pill status-tone-'+i+'" title="'+esc(status||'Төлөвгүй')+'">'+esc(cleanStatus(status))+'</span>';}
+const mobileExpandedIds=new Set();
 function rowHTML(row,flags){
  const id=esc(row.id),gap=(flags||[]).find(f=>f.kind==='gap'),mins=C.duration(row,renderWindow,renderNow),validId=row.id!==null&&row.id!==undefined;
- const actions='<div class="actions"><button type="button" data-edit="event" data-id="'+id+'" '+(!validId?'disabled':'')+'>Засах</button>'+(gap&&gap.previous!=null?'<button type="button" data-add-gap="'+esc(gap.previous)+'">Завсар нөхөх</button>':'')+(validId?'<button type="button" data-audit-row="'+id+'" data-audit-table="equipment_events">Түүх</button>':'')+'</div>';
- return '<tr data-event-row="'+id+'" tabindex="'+(validId?'0':'-1')+'" class="'+(String(selectedId)===String(row.id)?'desktop-selected':'')+'" aria-label="'+esc(eqName(row.equipment_id)+' · '+cleanStatus(row.status)+' · '+C.stamp(row.start_time)+' · Засах')+'"><td class="number">'+(validId?id:'—')+'</td><td class="time">'+C.stamp(row.start_time)+'</td><td class="time">'+(row.end_time?C.stamp(row.end_time):'Нээлттэй')+'</td><td class="number" title="Сонгосон хугацаанд ногдох минут">'+(mins===null?'—':mins.toFixed(2))+'</td><td>'+statusPill(row.status)+'</td><td class="operator" title="'+esc(row.operator_name||'')+'">'+esc(row.operator_name||'—')+'</td><td class="number">'+esc(row.smu??'—')+'</td><td class="number">'+esc(row.km??'—')+'</td><td class="comment" title="'+esc(row.comment||'')+'">'+esc(row.comment||'—')+'</td><td>'+(flags||[]).map(f=>'<span class="row-flag '+f.kind+'">'+esc(f.text)+'</span>').join('')+'</td><td>'+actions+'</td></tr>';
+ const expanded=mobileExpandedIds.has(String(row.id));
+ const actions='<div class="actions"><button type="button" data-edit="event" data-id="'+id+'" '+(!validId?'disabled':'')+'>Засах</button><button type="button" class="mobile-expand-button" data-mobile-expand aria-expanded="'+(expanded?'true':'false')+'">'+(expanded?'Хураах':'Дэлгэрэнгүй')+'</button>'+(gap&&gap.previous!=null?'<button type="button" data-add-gap="'+esc(gap.previous)+'">Завсар нөхөх</button>':'')+(validId?'<button type="button" data-audit-row="'+id+'" data-audit-table="equipment_events">Түүх</button>':'')+'</div>';
+ return '<tr data-event-row="'+id+'" tabindex="'+(validId?'0':'-1')+'" class="'+(String(selectedId)===String(row.id)?'desktop-selected':'')+(expanded?' mobile-expanded':'')+'" aria-label="'+esc(eqName(row.equipment_id)+' · '+cleanStatus(row.status)+' · '+C.stamp(row.start_time)+' · Засах')+'"><td class="number">'+(validId?id:'—')+'</td><td class="time">'+C.stamp(row.start_time)+'</td><td class="time">'+(row.end_time?C.stamp(row.end_time):'Нээлттэй')+'</td><td class="number" title="Сонгосон хугацаанд ногдох минут">'+(mins===null?'—':mins.toFixed(2))+'</td><td>'+statusPill(row.status)+'</td><td class="operator" title="'+esc(row.operator_name||'')+'">'+esc(row.operator_name||'—')+'</td><td class="number">'+esc(row.smu??'—')+'</td><td class="number">'+esc(row.km??'—')+'</td><td class="comment" title="'+esc(row.comment||'')+'">'+esc(row.comment||'—')+'</td><td>'+(flags||[]).map(f=>'<span class="row-flag '+f.kind+'">'+esc(f.text)+'</span>').join('')+'</td><td>'+actions+'</td></tr>';
 }
 let analysis=new Map();
 function fillGroup(details,more=false){
@@ -902,6 +929,19 @@ renderResults=function(){
 $('results').addEventListener('toggle',event=>{const details=event.target;if(!details.matches?.('.equipment-group'))return;const key=details.dataset.equipmentGroup;if(details.open){openGroups.add(key);fillGroup(details);}else openGroups.delete(key);},true);
 function selectRow(id){selectedId=id;for(const row of $('results').querySelectorAll('[data-event-row]'))row.classList.toggle('desktop-selected',row.dataset.eventRow===String(id));}
 $('results').addEventListener('click',event=>{
+ const expand=event.target.closest('[data-mobile-expand]');
+ if(expand){
+  event.preventDefault();event.stopPropagation();
+  const record=expand.closest('tr[data-event-row]');
+  if(!record)return;
+  const id=record.dataset.eventRow;
+  if(mobileExpandedIds.has(id))mobileExpandedIds.delete(id);else mobileExpandedIds.add(id);
+  const opened=mobileExpandedIds.has(id);
+  record.classList.toggle('mobile-expanded',opened);
+  expand.setAttribute('aria-expanded',String(opened));
+  expand.textContent=opened?'Хураах':'Дэлгэрэнгүй';
+  return;
+ }
  const add=event.target.closest('[data-group-add]');if(add){event.preventDefault();showNewEvent({equipment_id:add.dataset.groupAdd});return;}
  if(event.target.closest('[data-groups-open],[data-groups-close]')){const open=!!event.target.closest('[data-groups-open]');for(const d of $('results').querySelectorAll('.equipment-group')){d.open=open;if(open){openGroups.add(d.dataset.equipmentGroup);fillGroup(d);}else openGroups.delete(d.dataset.equipmentGroup);}return;}
  const more=event.target.closest('[data-group-more]');if(more){fillGroup(more.closest('.equipment-group'),true);return;}
