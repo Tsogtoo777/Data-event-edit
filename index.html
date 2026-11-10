@@ -61,7 +61,7 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
 .status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
 .status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style></head>
 <body>
-<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.2</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
+<header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.3</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
 <section id="loginView" class="panel login">
   <h2 style="margin-top:0;color:var(--orange)">Нэвтрэх</h2>
@@ -137,7 +137,7 @@ const STATUS_GROUPS = [
     "Якно зөөвөрлөх | ЭЦС"
   ],
   [
-    "IT Хүлээлт | ЭЦС",
+    "IT Сүлжээний асуудал",
     "Түргэн элэгдэх гэнэтийн | ЭЦС",
     "Экскаватор Төлөвлөгөөт засварт зогссон | ЭЦС",
     "Механик хүлээлт | ЭЦС",
@@ -171,6 +171,7 @@ const STATUS_GROUPS = [
     "Удирдлагын систем | ЭЦС",
     "Кабин засвар | ЭЦС",
     "Шат тавцан | ЭЦС",
+    "Дамарны гэмтэл, засвар | ЭЦС",
     "Цамхагийн засвар | ЭЦС",
     "Механик төлөвлөгөөт үзлэг | ЭЦС",
     "Техник үйлчилгээ (мот.цаг) | ЭЦС",
@@ -195,6 +196,8 @@ const PRODUCTIVE_STATUS = "Б Бүтээлтэй | ЭЦС";
 function operatorRequired(status){return false;} // Edit allows an unassigned operator for every status.
 const EDITOR_ROLES = new Set(["event_editor","master","dispatcher","management","admin"]);
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const filterDates={events:"",production:""};
+let initializeEventView;
 let currentUser = null, currentTab = "events", equipment = [], statusNames = [], events = [], production = [], editing = null, toastTimer = null;
 const $ = id => document.getElementById(id);
 function esc(v){return String(v ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -271,7 +274,7 @@ function canUse(){return currentUser&&canEditUser(currentUser);}
 async function checkSession(){const {data,error}=await sb.auth.getSession();if(error){showError("loginError",error.message);return;}if(data.session)await acceptSession(data.session);else showLogin();}
 function showLogin(){currentUser=null;$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');$('logoutBtn').classList.add('hidden');$('who').textContent='';}
 async function acceptSession(session){const user=session.user;if(!canEditUser(user)){await sb.auth.signOut();showLogin();showError('loginError','Энэ хэрэглэгчид Data Event Edit ашиглах эрх олгогдоогүй байна. Supabase-ийн app_metadata.role утгыг шалгана уу.');return;}
- currentUser=user;$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('logoutBtn').classList.remove('hidden');$('who').textContent=user.email||'';hideError('loginError');await loadData();}
+ currentUser=user;initializeEventView();$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('logoutBtn').classList.remove('hidden');$('who').textContent=user.email||'';hideError('loginError');await loadData();}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();hideError('loginError');const btn=$('loginBtn');btn.disabled=true;btn.textContent='Нэвтэрч байна…';try{const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)throw error;await acceptSession(data.session);}catch(err){showError('loginError',err.message||String(err));}finally{btn.disabled=false;btn.textContent='Нэвтрэх';}});
 $('logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();showLogin();});
 async function loadData(){hideError('loadError');$('results').innerHTML='<p class="subtle">Өгөгдөл ачаалж байна…</p>';try{
@@ -282,7 +285,7 @@ async function loadData(){hideError('loadError');$('results').innerHTML='<p clas
   sb.from('production_logs').select('*').order('created_at',{ascending:false}).limit(2000)
  ]);
  if(eqR.error)throw new Error('equipment унших алдаа: '+eqR.error.message);
- equipment=eqR.data||[];statusNames=[...new Set([...((stR.data||[]).map(x=>x.name).filter(name=>typeof name==='string' && name.trim().endsWith('| ЭЦС'))),PRODUCTIVE_STATUS])];
+ equipment=eqR.data||[];statusNames=[...new Set([...((stR.data||[]).map(x=>x.name).filter(name=>typeof name==='string' && (name.trim().endsWith('| ЭЦС') || name.trim()==='IT Сүлжээний асуудал'))),PRODUCTIVE_STATUS])];
  const fails=[];if(evR.error)fails.push('Төлөвийн хүснэгт: '+evR.error.message);if(prR.error)fails.push('Бүтээлийн хүснэгт: '+prR.error.message);
  events=evR.data||[];production=prR.data||[];
  if(fails.length)showError('loadError',fails.join('\n')+'\nRLS SELECT policy болон хүснэгтийн нэрийг шалгана уу.');
@@ -420,9 +423,10 @@ $('editor').addEventListener('submit',async e=>{e.preventDefault();if(!editing)r
  }
  closeEditor();tell('Өөрчлөлт хадгалагдлаа.');await loadData();
  }catch(err){tell('Хадгалах алдаа: '+(err.message||String(err)),true);}finally{if(button){button.disabled=false;button.textContent='Өөрчлөлт хадгалах';}}});
-function switchTab(tab){currentTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();setupHourFilter();populateEquipmentFilter();renderResults();}
+function setFilterTab(tab){if(currentTab!==tab){filterDates[currentTab]=$('filterDate').value;currentTab=tab;$('filterDate').value=filterDates[tab];}}
+function switchTab(tab){setFilterTab(tab);document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));closeEditor();setupHourFilter();populateEquipmentFilter();renderResults();}
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
-['filterDate','filterHour','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',renderResults));$('refreshBtn').addEventListener('click',loadData);
+['filterDate','filterHour','filterEquipment','filterText'].forEach(id=>$(id).addEventListener(id==='filterText'?'input':'change',()=>renderResults()));$('refreshBtn').addEventListener('click',()=>loadData());
 // Historical additions only. Never shortens or updates an existing record.
 let newEventBusy=false, newEventUncertain=false, newEventGap=null;
 function historicalISO(value){
@@ -535,7 +539,7 @@ $('newEventPanel').addEventListener('submit',async e=>{
   const {data,error}=await sb.from('equipment_events').insert(payload).select('id').single();
   if(error)throw error;
   inserted=true;$('newEventPanel').classList.add('hidden');tell('Шинэ төлөв нэмэгдлээ. ID: '+data.id);
-  $('filterDate').value=historicalInput(payload.start_time).slice(0,10);currentTab='events';
+  setFilterTab('events');$('filterDate').value=historicalInput(payload.start_time).slice(0,10);
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));
   await loadData();$('filterEquipment').value=String(payload.equipment_id);renderResults();
  }catch(err){
@@ -628,13 +632,12 @@ let reviewOpened=false;
 function validReviewId(v){return /^[a-zA-Z0-9_-]{1,100}$/.test(v);}
 async function openReviewContext(){if(reviewOpened||!canUse())return;if(!reviewContext.event&&!reviewContext.equipment)return;
  try{if(!/^\d{4}-\d{2}-\d{2}$/.test(reviewContext.date)||!validReviewId(reviewContext.equipment)||(reviewContext.event&&!validReviewId(reviewContext.event)))throw Error('DATA холбоосын утга буруу.');
- if(!equipment.some(e=>String(e.id)===reviewContext.equipment))throw Error('Холбоосын техник лавлахад олдсонгүй.');currentTab='events';populateEquipmentFilter();setupHourFilter();$('filterEquipment').value=reviewContext.equipment;$('filterText').value='';$('filterDate').value='';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));
+ if(!equipment.some(e=>String(e.id)===reviewContext.equipment))throw Error('Холбоосын техник лавлахад олдсонгүй.');setFilterTab('events');populateEquipmentFilter();setupHourFilter();$('filterEquipment').value=reviewContext.equipment;$('filterText').value='';$('filterDate').value='';$('desktopShift').value='all';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));
  if(reviewContext.event){const {data,error}=await sb.from('equipment_events').select('*').eq('id',reviewContext.event).maybeSingle();if(error)throw error;if(!data)throw Error('Бүртгэл олдсонгүй эсвэл харах эрх хүрэхгүй байна.');if(String(data.equipment_id)!==reviewContext.equipment)throw Error('Техник, бүртгэлийн ID тохирохгүй.');events=events.filter(e=>String(e.id)!==String(data.id));events.unshift(data);renderResults();reviewOpened=true;startEdit('event',data.id);tell('DATA шалгалтаас ID '+data.id+' нээлээ. Хадгалах хүртэл өөрчлөлт орохгүй.');}
  else{const a=new Date(reviewContext.date+'T07:00:00+08:00');if(!Number.isFinite(a.getTime()))throw Error('Огноо буруу.');const b=new Date(a.getTime()+86400000),rows=[];for(let offset=0;;offset+=500){const {data,error}=await sb.from('equipment_events').select('*').eq('equipment_id',reviewContext.equipment).lt('start_time',b.toISOString()).or('end_time.is.null,end_time.gt.'+a.toISOString()).order('start_time',{ascending:true}).order('id',{ascending:true}).range(offset,offset+499);if(error)throw error;rows.push(...(data||[]));if((data||[]).length<500)break;}events=rows;renderResults();reviewOpened=true;tell(reviewContext.date+' · 07:00–дараагийн 07:00 · DATA шалгалтын техникээр шүүлээ.');}
  }catch(e){showError('loadError','DATA холбоос нээсэнгүй: '+e.message);}}
 const beforeReviewLoad=loadData;loadData=async function(){await beforeReviewLoad.apply(this,arguments);await openReviewContext();};
 
-checkSession();
 </script>
 <script>(function(root){'use strict';const roles=new Set(['event_editor','master','dispatcher','management','admin']);
 function canWrite(user){return !!user&&roles.has(String(user.app_metadata?.role||'').toLowerCase());}
@@ -663,10 +666,15 @@ const oldLogin=showLogin;showLogin=function(){hide();records=[];cursor=null;$('a
 const style=document.createElement('style');style.textContent='#auditPanel td,#auditPanel th{padding:8px;text-align:left;border-bottom:1px solid #444;max-width:420px}#auditPanel th{color:var(--orange)}';document.head.append(style);
 })();
 </script>
-<script>(function(root){"use strict";const categories=[{"name": "Бүтээлтэй", "key": "work", "color": "#2DAA70", "text": "#071D12", "statuses": ["Б Бүтээлтэй | ЭЦС"]}, {"name": "Бэлэн байдалд", "key": "ready", "color": "#A9D6EF", "text": "#102534", "statuses": ["Төлөвлөгөөний дагуу ажиллахгүй | ЭЦС", "Бэлэн нөөцөнд зогсож байна | ЭЦС"]}, {"name": "Норматив", "key": "normative", "color": "#F2D34F", "text": "#292100", "statuses": ["Амралт цайны цаг | ЭЦС", "Түлш авах хугацаа | ЭЦС", "Унтлагын цаг | ЭЦС", "Ээлж солилцох | ЭЦС", "Усан хангамж | ЭЦС"]}, {"name": "Ашиглалтаас шалтгаалсан", "key": "operating", "color": "#F28C28", "text": "#301500", "statuses": ["Цайны цаг хэтрэлт | ЭЦС", "Түлш авах хугацаа хэтрэлт | ЭЦС", "Унтлагын цаг хэтрэлт | ЭЦС", "Ээлж солилцох хэтрэлт | ЭЦС", "Ус хангамж хэтрэлт | ЭЦС", "Тэсэлгээний хугацаа хэтрэлт | ЭЦС", "Операторын тойрох үзлэг | ЭЦС", "Операторын гэнэтийн үзлэг | ЭЦС", "Тэсэлгээнээс шалтгаалсан нүүдэл | ЭЦС", "Хувийн цаг | ЭЦС", "Уул технологийн хүндрэл | ЭЦС", "Хорших техник дутагдалтай | ЭЦС", "Ажиллах талбайгүй | ЭЦС", "Ачуулах экскаватороо хүлээсэн | ЭЦС", "Ажиллах хүнгүй | ЭЦС", "Операторгүй | ЭЦС", "Операторын бие муудсан | ЭЦС", "Оператор сургалтанд суусан | ЭЦС", "Экскаваторт гэнэтийн эвдрэл гарсан | ЭЦС", "Инженерийн ажил | ЭЦС", "Ул түрэх, ажлын талбай бэлдэх | ЭЦС", "Маркшейдер шалтгаалсан зогсолт | ЭЦС", "Геологи шалтгаалсан зогсолт | ЭЦС", "Цахилгааны зөөвөр нүүдэл | ЭЦС", "Мөргөцөг хоорондын шилжилт хөдөлгөөн | ЭЦС", "Якно зөөвөрлөх | ЭЦС"]}, {"name": "Төлөвлөгөөт засвар", "key": "planned", "color": "#EC8FC2", "text": "#311125", "statuses": ["Экскаватор Төлөвлөгөөт засварт зогссон | ЭЦС", "Механик төлөвлөгөөт үзлэг | ЭЦС", "Техник үйлчилгээ (мот.цаг) | ЭЦС", "Тосолгоо үйлчилгээ тос масло нэмэх | ЭЦС", "Төлөвлөгөөт түргэн элэгдэх | ЭЦС"]}, {"name": "Эвдрэл гэмтэл, түүнтэй холбоотой засварын хүлээлт", "key": "repair", "color": "#DC4444", "text": "#FFFFFF", "statuses": ["IT Хүлээлт | ЭЦС", "Түргэн элэгдэх гэнэтийн | ЭЦС", "Механик хүлээлт | ЭЦС", "Цахилгаанчин хүлээлт | ЭЦС", "Механик гэнэтийн үзлэг | ЭЦС", "Тосолгоо хүлээлт | ЭЦС", "Станц харилцаа холбооны гэмтэл завсар | ЭЦС", "Цахилгаан систем | ЭЦС", "Гидрийн систем | ЭЦС", "Гидрийн шланк | ЭЦС", "Гидрийн цилиндр | ЭЦС", "Засвар хүлээгдэж байгаа | ЭЦС", "Засварчин хүрэлцээгүй | ЭЦС", "Хөдөлгүүр засвар | ЭЦС", "Тормозны систем | ЭЦС", "Хүч дамжуулах анги | ЭЦС", "Хөргөлт, халаалтын систем | ЭЦС", "Гагнуурын ажил | ЭЦС", "Явах анги | ЭЦС", "Хийн систем Бусад | ЭЦС", "Дугуй | ЭЦС", "Түлшний систем | ЭЦС", "Тосолгооны систем | ЭЦС", "Гэрээт гэнэтийн үзлэг | ЭЦС", "Засвар цаг хэтрэлт/ мото.цаг/ | ЭЦС", "Асаалтын систем | ЭЦС", "Усны систем | ЭЦС", "Агаарын систем | ЭЦС", "Ажлын багаж | ЭЦС", "Удирдлагын систем | ЭЦС", "Кабин засвар | ЭЦС", "Шат тавцан | ЭЦС", "Цамхагийн засвар | ЭЦС", "Гэрээт компани засвар | ЭЦС"]}, {"name": "Сэлбэг хангамж", "key": "supply", "color": "#999999", "text": "#181818", "statuses": ["Сэлбэг хүлээлт | ЭЦС", "Сэлбэггүй зогссон | ЭЦС", "Хангамжаас шалтгаалсан | ЭЦС", "Түлш, тосгүй | ЭЦС", "Үйлчилгээний машин дутагдалтай | ЭЦС"]}, {"name": "Гадны нөлөөлөл", "key": "external", "color": "#966344", "text": "#FFFFFF", "statuses": ["Цаг агаарын саатал, хүндрэл | ЭЦС", "Захиргааны шийдвэрээр зогсоосон сул зогсолт | ЭЦС", "Өөр төсөлд ажиллах | ЭЦС", "Цахилгаан тасралт Төвийн шугам | ЭЦС", "Дэд бүтэцийн цахилгааны гэмтэл Өндрийн | ЭЦС", "Улсын байгууллага хяналт шалгалт | ЭЦС"]}];const clean=v=>String(v??" ").split("|")[0].trim().replace(/\s+/g," ");const lookup=new Map();categories.forEach((c,i)=>c.statuses.forEach(s=>lookup.set(clean(s),i)));function index(s){return lookup.get(clean(s))??-1;}const api={categories,index,category:s=>categories[index(s)]||null};if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.DataStatusCatalog=api;})(globalThis);</script>
+<script>(function(root){"use strict";const categories=[{"name": "Бүтээлтэй", "key": "work", "color": "#2DAA70", "text": "#071D12", "statuses": ["Б Бүтээлтэй | ЭЦС"]}, {"name": "Бэлэн байдалд", "key": "ready", "color": "#A9D6EF", "text": "#102534", "statuses": ["Төлөвлөгөөний дагуу ажиллахгүй | ЭЦС", "Бэлэн нөөцөнд зогсож байна | ЭЦС"]}, {"name": "Норматив", "key": "normative", "color": "#F2D34F", "text": "#292100", "statuses": ["Амралт цайны цаг | ЭЦС", "Түлш авах хугацаа | ЭЦС", "Унтлагын цаг | ЭЦС", "Ээлж солилцох | ЭЦС", "Усан хангамж | ЭЦС"]}, {"name": "Ашиглалтаас шалтгаалсан", "key": "operating", "color": "#F28C28", "text": "#301500", "statuses": ["Цайны цаг хэтрэлт | ЭЦС", "Түлш авах хугацаа хэтрэлт | ЭЦС", "Унтлагын цаг хэтрэлт | ЭЦС", "Ээлж солилцох хэтрэлт | ЭЦС", "Ус хангамж хэтрэлт | ЭЦС", "Тэсэлгээний хугацаа хэтрэлт | ЭЦС", "Операторын тойрох үзлэг | ЭЦС", "Операторын гэнэтийн үзлэг | ЭЦС", "Тэсэлгээнээс шалтгаалсан нүүдэл | ЭЦС", "Хувийн цаг | ЭЦС", "Уул технологийн хүндрэл | ЭЦС", "Хорших техник дутагдалтай | ЭЦС", "Ажиллах талбайгүй | ЭЦС", "Ачуулах экскаватороо хүлээсэн | ЭЦС", "Ажиллах хүнгүй | ЭЦС", "Операторгүй | ЭЦС", "Операторын бие муудсан | ЭЦС", "Оператор сургалтанд суусан | ЭЦС", "Экскаваторт гэнэтийн эвдрэл гарсан | ЭЦС", "Инженерийн ажил | ЭЦС", "Ул түрэх, ажлын талбай бэлдэх | ЭЦС", "Маркшейдер шалтгаалсан зогсолт | ЭЦС", "Геологи шалтгаалсан зогсолт | ЭЦС", "Цахилгааны зөөвөр нүүдэл | ЭЦС", "Мөргөцөг хоорондын шилжилт хөдөлгөөн | ЭЦС", "Якно зөөвөрлөх | ЭЦС"]}, {"name": "Төлөвлөгөөт засвар", "key": "planned", "color": "#EC8FC2", "text": "#311125", "statuses": ["Экскаватор Төлөвлөгөөт засварт зогссон | ЭЦС", "Механик төлөвлөгөөт үзлэг | ЭЦС", "Техник үйлчилгээ (мот.цаг) | ЭЦС", "Тосолгоо үйлчилгээ тос масло нэмэх | ЭЦС", "Төлөвлөгөөт түргэн элэгдэх | ЭЦС"]}, {"name": "Эвдрэл гэмтэл, түүнтэй холбоотой засварын хүлээлт", "key": "repair", "color": "#DC4444", "text": "#FFFFFF", "statuses": ["IT Сүлжээний асуудал", "Түргэн элэгдэх гэнэтийн | ЭЦС", "Механик хүлээлт | ЭЦС", "Цахилгаанчин хүлээлт | ЭЦС", "Механик гэнэтийн үзлэг | ЭЦС", "Тосолгоо хүлээлт | ЭЦС", "Станц харилцаа холбооны гэмтэл завсар | ЭЦС", "Цахилгаан систем | ЭЦС", "Гидрийн систем | ЭЦС", "Гидрийн шланк | ЭЦС", "Гидрийн цилиндр | ЭЦС", "Засвар хүлээгдэж байгаа | ЭЦС", "Засварчин хүрэлцээгүй | ЭЦС", "Хөдөлгүүр засвар | ЭЦС", "Тормозны систем | ЭЦС", "Хүч дамжуулах анги | ЭЦС", "Хөргөлт, халаалтын систем | ЭЦС", "Гагнуурын ажил | ЭЦС", "Явах анги | ЭЦС", "Хийн систем Бусад | ЭЦС", "Дугуй | ЭЦС", "Түлшний систем | ЭЦС", "Тосолгооны систем | ЭЦС", "Гэрээт гэнэтийн үзлэг | ЭЦС", "Засвар цаг хэтрэлт/ мото.цаг/ | ЭЦС", "Асаалтын систем | ЭЦС", "Усны систем | ЭЦС", "Агаарын систем | ЭЦС", "Ажлын багаж | ЭЦС", "Удирдлагын систем | ЭЦС", "Кабин засвар | ЭЦС", "Шат тавцан | ЭЦС", "Дамарны гэмтэл, засвар | ЭЦС", "Цамхагийн засвар | ЭЦС", "Гэрээт компани засвар | ЭЦС"]}, {"name": "Сэлбэг хангамж", "key": "supply", "color": "#999999", "text": "#181818", "statuses": ["Сэлбэг хүлээлт | ЭЦС", "Сэлбэггүй зогссон | ЭЦС", "Хангамжаас шалтгаалсан | ЭЦС", "Түлш, тосгүй | ЭЦС", "Үйлчилгээний машин дутагдалтай | ЭЦС"]}, {"name": "Гадны нөлөөлөл", "key": "external", "color": "#966344", "text": "#FFFFFF", "statuses": ["Цаг агаарын саатал, хүндрэл | ЭЦС", "Захиргааны шийдвэрээр зогсоосон сул зогсолт | ЭЦС", "Өөр төсөлд ажиллах | ЭЦС", "Цахилгаан тасралт Төвийн шугам | ЭЦС", "Дэд бүтэцийн цахилгааны гэмтэл Өндрийн | ЭЦС", "Улсын байгууллага хяналт шалгалт | ЭЦС"]}];const clean=v=>String(v??" ").split("|")[0].trim().replace(/\s+/g," ");const lookup=new Map();categories.forEach((c,i)=>c.statuses.forEach(s=>lookup.set(clean(s),i)));function index(s){return lookup.get(clean(s))??-1;}const api={categories,index,category:s=>categories[index(s)]||null};if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.DataStatusCatalog=api;})(globalThis);</script>
 <script>
 (function(root){'use strict';
 const SHIFT=8*3600000;
+function currentShift(now=Date.now()){
+ const local=new Date(now+SHIFT),hour=local.getUTCHours();
+ if(hour<7)local.setUTCDate(local.getUTCDate()-1);
+ return {day:local.toISOString().slice(0,10),shift:hour>=7&&hour<19?'day':'night'};
+}
 function bounds(day,shift='all'){
  if(!day)return null;
  if(!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error('Огноо буруу байна.');
@@ -698,7 +706,7 @@ function analyse(rows,window,now){
  }
  return flags;
 }
-const api={bounds,stamp,interval,duration,filter,analyse};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.DesktopEditCore=api;
+const api={currentShift,bounds,stamp,interval,duration,filter,analyse};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.DesktopEditCore=api;
 })(globalThis);
 
 </script>
@@ -706,12 +714,22 @@ const api={bounds,stamp,interval,duration,filter,analyse};if(typeof module!=='un
 (function(){'use strict';
 const C=DesktopEditCore,previousRender=renderResults,previousFilter=filteredRows,openGroups=new Set(),groupRows=new Map(),loadedCounts=new Map();let renderNow=Date.now(),renderWindow=null,selectedId=null;
 const shiftLabel=document.createElement('label');shiftLabel.id='desktopShiftWrap';shiftLabel.className='desktop-shift-label';shiftLabel.innerHTML='Ээлж<select id="desktopShift"><option value="all">Бүх ээлж · 07–07</option><option value="day">Өдөр · 07–19</option><option value="night">Шөнө · 19–07</option></select>';
-$('filterDate').parentElement.after(shiftLabel);$('filterDate').parentElement.firstChild.textContent='Ээлжийн огноо';
+const dateLabel=$('filterDate').parentElement;
+dateLabel.after(shiftLabel);dateLabel.firstChild.textContent='Ээлжийн огноо';
+initializeEventView=function(){
+ const {day,shift}=C.currentShift();
+ currentTab='events';filterDates.events=day;filterDates.production='';
+ $('filterDate').value=day;$('desktopShift').value=shift;$('filterEquipment').value='';$('filterText').value='';$('filterHour').value='';
+ openGroups.clear();groupRows.clear();loadedCounts.clear();selectedId=null;
+ closeEditor();$('newEventPanel').classList.add('hidden');
+ document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));
+ window.scrollTo(0,0);
+};
 const source=$('filters').querySelector('label:last-child');if(source&&source.textContent.includes('Эх сурвалж'))source.remove();
 function options(){return {day:$('filterDate').value,shift:$('desktopShift').value,equipment:$('filterEquipment').value,query:$('filterText').value};}
 filteredRows=function(){return currentTab==='events'?C.filter(events,options(),Date.now(),eqName):previousFilter.apply(this,arguments);};
 const cleanStatus=s=>String(s||'Төлөвгүй').split('|')[0].trim();
-function statusPill(status){const i=DataStatusCatalog.index(status);return '<span class="status-pill status-tone-'+i+'" title="'+esc(status||'Төлөвгүй')+'">'+esc(cleanStatus(status))+'</span>';}
+function statusPill(status){const i=DataStatusCatalog.index(status === "IT Хүлээлт | ЭЦС" ? "IT Сүлжээний асуудал" : status);return '<span class="status-pill status-tone-'+i+'" title="'+esc(status||'Төлөвгүй')+'">'+esc(cleanStatus(status))+'</span>';}
 function rowHTML(row,flags){
  const id=esc(row.id),gap=(flags||[]).find(f=>f.kind==='gap'),mins=C.duration(row,renderWindow,renderNow),validId=row.id!==null&&row.id!==undefined;
  const actions='<div class="actions"><button type="button" data-edit="event" data-id="'+id+'" '+(!validId?'disabled':'')+'>Засах</button>'+(gap&&gap.previous!=null?'<button type="button" data-add-gap="'+esc(gap.previous)+'">Завсар нөхөх</button>':'')+(validId?'<button type="button" data-audit-row="'+id+'" data-audit-table="equipment_events">Түүх</button>':'')+'</div>';
@@ -724,7 +742,7 @@ function fillGroup(details,more=false){
  body.innerHTML='<div class="desktop-table-wrap"><table class="event-table"><thead><tr><th>ID</th><th>Эхэлсэн · UTC+8</th><th>Дууссан · UTC+8</th><th>Минут</th><th>Төлөв</th><th>Оператор</th><th>Моточаг</th><th>Км</th><th>Тайлбар</th><th>Цагийн шалгалт</th><th>Үйлдэл</th></tr></thead><tbody>'+rows.slice(0,count).map(row=>rowHTML(row,analysis.get(String(row.id)))).join('')+'</tbody></table></div>'+(count<rows.length?'<div class="group-more"><button type="button" data-group-more="'+esc(key)+'">Дараах 100 мөр · '+count+' / '+rows.length+'</button></div>':'');
 }
 renderResults=function(){
- const eventsTab=currentTab==='events';shiftLabel.classList.toggle('hidden',!eventsTab);shiftLabel.style.display=eventsTab?'block':'none';
+ const eventsTab=currentTab==='events';dateLabel.firstChild.textContent=eventsTab?'Ээлжийн огноо':'Огноо';shiftLabel.classList.toggle('hidden',!eventsTab);shiftLabel.style.display=eventsTab?'block':'none';
  if(!eventsTab)return previousRender.apply(this,arguments);
  renderNow=Date.now();let rows;try{renderWindow=C.bounds(options().day,options().shift);rows=filteredRows();}catch(error){$('results').innerHTML='<p class="error">'+esc(error.message)+'</p>';return;}
  groupRows.clear();for(const row of rows){const key=String(row.equipment_id);if(!groupRows.has(key))groupRows.set(key,[]);groupRows.get(key).push(row);}
@@ -748,7 +766,7 @@ $('results').addEventListener('click',event=>{
  const row=event.target.closest('[data-event-row]');if(!row)return;selectRow(row.dataset.eventRow);if(event.target.closest('button,a,input,select,textarea'))return;if(row.tabIndex>=0)startEdit('event',row.dataset.eventRow);
 });
 $('results').addEventListener('keydown',event=>{if(event.target.matches('[data-event-row]')&&(event.key==='Enter'||event.key===' ')){event.preventDefault();if(!event.repeat&&event.target.tabIndex>=0){selectRow(event.target.dataset.eventRow);startEdit('event',event.target.dataset.eventRow);}}});
-$('desktopShift').addEventListener('change',renderResults);
+$('desktopShift').addEventListener('change',()=>renderResults());
 if(typeof MutationObserver!=='undefined')new MutationObserver(()=>{if($('results').querySelector('.equipment-group'))for(const d of $('results').querySelectorAll('.equipment-group'))if(editing?.type==='event'&&groupRows.get(d.dataset.equipmentGroup)?.some(row=>String(row.id)===String(editing.row.id)))d.open=true;}).observe($('editor'),{attributes:true,attributeFilter:['class']});
 })();
 
@@ -797,7 +815,7 @@ $('e2Save').onclick=async function(){
  if(busy||!active)return;busy=true;this.disabled=true;$('e2Close').disabled=true;hideError('e2Error');
  const pending=active;
  try{if(!canUse())throw Error('Нэвтрэх эрхээ шалгана уу.');const data=await rpc('save',pending.operation,pending.input,pending.plan,pending.request);
-  active=null;dialog.close();panel.classList.add('hidden');closeEditor();currentTab='events';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));tell('Хадгалалт баталгаажлаа. Хуучин мэдээлэл түүхэнд хадгалагдсан.');
+  active=null;dialog.close();panel.classList.add('hidden');closeEditor();setFilterTab('events');document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab==='events'));tell('Хадгалалт баталгаажлаа. Хуучин мэдээлэл түүхэнд хадгалагдсан.');
   try{await loadData();$('filterEquipment').value=data.equipment_id;renderResults();}catch{tell('Хадгалсан. Жагсаалтыг шинэчлэхэд алдаа гарлаа. «Шинэчлэх» дарна уу.',true);}
  }catch(err){
   const definite=typeof err.code==='string'&&/^(P\d{4}|\d{5}|42501|42883)$/.test(err.code);
@@ -863,5 +881,9 @@ showNewEvent=function(){
 })();
 </script>
 
+<script>
+if('scrollRestoration' in history)history.scrollRestoration='manual';
+checkSession();
+</script>
 </body>
 </html>
