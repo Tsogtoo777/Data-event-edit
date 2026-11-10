@@ -59,7 +59,99 @@ table{border-collapse:collapse;font-variant-numeric:tabular-nums}table th,table 
 .status-tone-4{--status-color:#EC8FC2;background:color-mix(in srgb,#EC8FC2 14%,#252a32)}
 .status-tone-5{--status-color:#DC4444;background:color-mix(in srgb,#DC4444 14%,#252a32)}
 .status-tone-6{--status-color:#999999;background:color-mix(in srgb,#999999 14%,#252a32)}
-.status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style></head>
+.status-tone-7{--status-color:#966344;background:color-mix(in srgb,#966344 14%,#252a32)}</style><style id="eventE2Style">#previewE2{color:var(--ui-text);background:var(--ui-panel);border:1px solid #687383;border-radius:10px;max-width:1100px;width:calc(100% - 40px);max-height:85vh;padding:20px}#previewE2::backdrop{background:#080b10bb}#e2Rows{overflow:auto;max-height:55vh}#e2Rows table{width:100%;min-width:650px}#e2Rows td,#e2Rows th{border:1px solid #48515c;padding:10px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}#previewE2 .actions{margin-top:15px}#e2Rows td:first-child{width:18%}</style>
+<style id="etts-mobile-ux-d4">
+/* D4 progressive mobile record cards; preserves desktop data table, status colors and edit/RPC logic. */
+:root{--etts-touch:44px;--etts-radius:11px}
+@media(max-width:760px){
+ html{scroll-padding-top:12px}
+ body{font-size:14px;line-height:1.5}
+ header{position:relative;top:auto;flex-wrap:wrap;gap:8px;padding:12px}
+ header h1{font-size:18px}
+ header small{display:block;font-size:12px;line-height:1.4}
+ header>.actions{width:100%;justify-content:space-between}
+ header #who{min-width:0;max-width:65vw;overflow-wrap:anywhere}
+ main{padding:12px;max-width:none}
+ .panel,.login,.entry,.equipment-group{border-radius:var(--etts-radius)}
+ .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+ .tabs button{min-height:var(--etts-touch);font-size:14px;line-height:1.3;padding:10px 8px}
+ .tabs #refreshBtn{grid-column:1/-1}
+ #filters .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ #filters label{min-width:0;font-size:13px}
+ #filters input,#filters select{min-width:0;min-height:var(--etts-touch);font-size:15px}
+ .desktop-tools{display:flex;gap:8px;width:100%}
+ .desktop-tools button,.equipment-group>summary button,.group-more button{min-height:var(--etts-touch);font-size:13px}
+ .equipment-group>summary{min-height:var(--etts-touch);padding:12px;align-items:center;gap:7px}
+ .equipment-group>summary .group-count{font-size:12px}
+ .desktop-table-wrap{max-height:none;overflow:visible}
+ .event-table{display:block;min-width:0!important;width:100%;font-size:14px;border-collapse:separate}
+ .event-table thead{display:none}
+ .event-table tbody{display:grid;gap:10px;padding:10px}
+ .event-table tr[data-event-row]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;background:#252d37;border:1px solid #4c5868;border-radius:12px;padding:12px;box-shadow:0 3px 9px #0002}
+ .event-table tr[data-event-row].desktop-selected{border-color:#ff842e;box-shadow:inset 3px 0 #ff842e}
+ .event-table tr[data-event-row]>td{display:block;min-width:0;max-width:none;padding:0;border:0;background:transparent;white-space:normal;text-align:left;font-size:13px;overflow-wrap:anywhere}
+ .event-table tr[data-event-row]>td::before{display:block;color:#b8c5d3;font-size:11px;line-height:1.35;font-weight:600;margin-bottom:3px}
+ .event-table tr[data-event-row]>td:nth-child(1)::before{content:"ID"}
+ .event-table tr[data-event-row]>td:nth-child(2)::before{content:"Эхэлсэн"}
+ .event-table tr[data-event-row]>td:nth-child(3)::before{content:"Дууссан"}
+ .event-table tr[data-event-row]>td:nth-child(4)::before{content:"Хугацаа · мин"}
+ .event-table tr[data-event-row]>td:nth-child(5)::before{content:"Төлөв"}
+ .event-table tr[data-event-row]>td:nth-child(6)::before{content:"Оператор"}
+ .event-table tr[data-event-row]>td:nth-child(7)::before{content:"Моточаг"}
+ .event-table tr[data-event-row]>td:nth-child(8)::before{content:"Км"}
+ .event-table tr[data-event-row]>td:nth-child(9)::before{content:"Тайлбар"}
+ .event-table tr[data-event-row]>td:nth-child(10)::before{content:"Цагийн шалгалт"}
+ .event-table tr[data-event-row]>td:nth-child(11)::before{content:"Үйлдэл"}
+ .event-table tr[data-event-row]>td:nth-child(5){grid-column:1/-1;order:-4;padding-bottom:8px;border-bottom:1px solid #445061}
+ .event-table tr[data-event-row]>td:nth-child(2),.event-table tr[data-event-row]>td:nth-child(3){order:-3}
+ .event-table tr[data-event-row]>td:nth-child(4),.event-table tr[data-event-row]>td:nth-child(6){order:-2}
+ .event-table tr[data-event-row]>td:nth-child(9),.event-table tr[data-event-row]>td:nth-child(10),.event-table tr[data-event-row]>td:nth-child(11){grid-column:1/-1}
+ .event-table tr[data-event-row]>td:nth-child(9){order:3}
+ .event-table tr[data-event-row]>td:nth-child(10){order:4}
+ .event-table tr[data-event-row]>td:nth-child(11){order:5;padding-top:8px;border-top:1px solid #445061}
+ .event-table .comment,.event-table .operator{max-width:none;white-space:normal;text-overflow:clip}
+ .event-table .status-pill{display:inline-block;max-width:100%;white-space:normal;font-size:13px;padding:7px 9px}
+ .event-table .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;flex-wrap:wrap}
+ .event-table .actions button{min-height:var(--etts-touch);font-size:14px;padding:9px 8px}
+ #editor:not(.hidden),#newEventPanel:not(.hidden){position:static;width:auto;max-height:none;margin-right:0;overflow:visible}
+ #editor input,#editor select,#editor textarea,#newEventPanel input,#newEventPanel select,#newEventPanel textarea{min-height:var(--etts-touch);font-size:15px}
+ #editor button,#newEventPanel button{min-height:var(--etts-touch)}
+ #previewE2{width:calc(100% - 20px);max-height:92dvh;padding:12px}
+}
+@media(max-width:450px){
+ #filters .row{grid-template-columns:1fr}
+ .tabs button{font-size:13px}
+ .event-table tbody{padding:8px}
+ .event-table tr[data-event-row]{padding:10px;gap:8px}
+ .event-table .actions{grid-template-columns:1fr 1fr}
+}
+
+/* D4.1: compact mobile cards; warnings stay visible, secondary fields are expandable. */
+.mobile-expand-button{display:none}
+@media(max-width:760px){
+ .equipment-group>summary{display:flex;flex-wrap:wrap;gap:8px 10px}
+ .equipment-group>summary>strong{flex:1 1 185px;min-width:0;overflow-wrap:anywhere;line-height:1.35;font-size:15px}
+ .equipment-group>summary>.group-count{flex:0 0 auto;white-space:nowrap;min-width:max-content;font-size:12px}
+ .equipment-group>summary>button[data-group-add]{flex:1 1 100%;width:100%;min-height:44px}
+ .equipment-group>summary>.group-warning,.equipment-group>summary>.group-alert{flex:0 0 auto}
+ .event-table tbody{gap:9px}
+ .event-table tr[data-event-row]{gap:7px;padding:10px}
+ .event-table tr[data-event-row]>td::before{font-size:11px;margin-bottom:2px}
+ .event-table tr[data-event-row]>td:nth-child(5){padding-bottom:6px}
+ .event-table tr[data-event-row]>td:nth-child(11){padding-top:7px}
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(1),
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(7),
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(8),
+ .event-table tr[data-event-row]:not(.mobile-expanded)>td:nth-child(9){display:none}
+ .event-table tr[data-event-row]>td:nth-child(10):empty{display:none}
+ .event-table .actions button[data-audit-row]{display:none}
+ .event-table tr.mobile-expanded .actions button[data-audit-row]{display:block}
+ .event-table .actions .mobile-expand-button{display:block;background:#364252;border-color:#6e7c90;color:#f0f4f9}
+ .event-table .actions .mobile-expand-button:focus-visible{outline:2px solid #ffad70;outline-offset:2px}
+ .event-table .status-pill{padding:6px 9px}
+}
+</style>
+</head>
 <body>
 <header><div><h1>⛏ DATA EVENT EDIT</h1><small>Төлөв, бүтээл засах · Компьютерийн хүснэгт · E2.5</small></div><div class="actions"><span id="who" class="subtle"></span><button id="logoutBtn" class="hidden">Гарах</button></div></header>
 <main>
@@ -797,10 +889,12 @@ function options(){return {day:$('filterDate').value,shift:$('desktopShift').val
 filteredRows=function(){return currentTab==='events'?C.filter(events,options(),Date.now(),eqName):previousFilter.apply(this,arguments);};
 const cleanStatus=s=>String(s||'Төлөвгүй').split('|')[0].trim();
 function statusPill(status){const i=DataStatusCatalog.index(status === "IT Хүлээлт | ЭЦС" ? "IT Сүлжээний асуудал" : status);return '<span class="status-pill status-tone-'+i+'" title="'+esc(status||'Төлөвгүй')+'">'+esc(cleanStatus(status))+'</span>';}
+const mobileExpandedIds=new Set();
 function rowHTML(row,flags){
  const id=esc(row.id),gap=(flags||[]).find(f=>f.kind==='gap'),mins=C.duration(row,renderWindow,renderNow),validId=row.id!==null&&row.id!==undefined;
- const actions='<div class="actions"><button type="button" data-edit="event" data-id="'+id+'" '+(!validId?'disabled':'')+'>Засах</button>'+(gap&&gap.previous!=null?'<button type="button" data-add-gap="'+esc(gap.previous)+'">Завсар нөхөх</button>':'')+(validId?'<button type="button" data-audit-row="'+id+'" data-audit-table="equipment_events">Түүх</button>':'')+'</div>';
- return '<tr data-event-row="'+id+'" tabindex="'+(validId?'0':'-1')+'" class="'+(String(selectedId)===String(row.id)?'desktop-selected':'')+'" aria-label="'+esc(eqName(row.equipment_id)+' · '+cleanStatus(row.status)+' · '+C.stamp(row.start_time)+' · Засах')+'"><td class="number">'+(validId?id:'—')+'</td><td class="time">'+C.stamp(row.start_time)+'</td><td class="time">'+(row.end_time?C.stamp(row.end_time):'Нээлттэй')+'</td><td class="number" title="Сонгосон хугацаанд ногдох минут">'+(mins===null?'—':mins.toFixed(2))+'</td><td>'+statusPill(row.status)+'</td><td class="operator" title="'+esc(row.operator_name||'')+'">'+esc(row.operator_name||'—')+'</td><td class="number">'+esc(row.smu??'—')+'</td><td class="number">'+esc(row.km??'—')+'</td><td class="comment" title="'+esc(row.comment||'')+'">'+esc(row.comment||'—')+'</td><td>'+(flags||[]).map(f=>'<span class="row-flag '+f.kind+'">'+esc(f.text)+'</span>').join('')+'</td><td>'+actions+'</td></tr>';
+ const expanded=mobileExpandedIds.has(String(row.id));
+ const actions='<div class="actions"><button type="button" data-edit="event" data-id="'+id+'" '+(!validId?'disabled':'')+'>Засах</button><button type="button" class="mobile-expand-button" data-mobile-expand aria-expanded="'+(expanded?'true':'false')+'">'+(expanded?'Хураах':'Дэлгэрэнгүй')+'</button>'+(gap&&gap.previous!=null?'<button type="button" data-add-gap="'+esc(gap.previous)+'">Завсар нөхөх</button>':'')+(validId?'<button type="button" data-audit-row="'+id+'" data-audit-table="equipment_events">Түүх</button>':'')+'</div>';
+ return '<tr data-event-row="'+id+'" tabindex="'+(validId?'0':'-1')+'" class="'+(String(selectedId)===String(row.id)?'desktop-selected':'')+(expanded?' mobile-expanded':'')+'" aria-label="'+esc(eqName(row.equipment_id)+' · '+cleanStatus(row.status)+' · '+C.stamp(row.start_time)+' · Засах')+'"><td class="number">'+(validId?id:'—')+'</td><td class="time">'+C.stamp(row.start_time)+'</td><td class="time">'+(row.end_time?C.stamp(row.end_time):'Нээлттэй')+'</td><td class="number" title="Сонгосон хугацаанд ногдох минут">'+(mins===null?'—':mins.toFixed(2))+'</td><td>'+statusPill(row.status)+'</td><td class="operator" title="'+esc(row.operator_name||'')+'">'+esc(row.operator_name||'—')+'</td><td class="number">'+esc(row.smu??'—')+'</td><td class="number">'+esc(row.km??'—')+'</td><td class="comment" title="'+esc(row.comment||'')+'">'+esc(row.comment||'—')+'</td><td>'+(flags||[]).map(f=>'<span class="row-flag '+f.kind+'">'+esc(f.text)+'</span>').join('')+'</td><td>'+actions+'</td></tr>';
 }
 let analysis=new Map();
 function fillGroup(details,more=false){
@@ -835,6 +929,19 @@ renderResults=function(){
 $('results').addEventListener('toggle',event=>{const details=event.target;if(!details.matches?.('.equipment-group'))return;const key=details.dataset.equipmentGroup;if(details.open){openGroups.add(key);fillGroup(details);}else openGroups.delete(key);},true);
 function selectRow(id){selectedId=id;for(const row of $('results').querySelectorAll('[data-event-row]'))row.classList.toggle('desktop-selected',row.dataset.eventRow===String(id));}
 $('results').addEventListener('click',event=>{
+ const expand=event.target.closest('[data-mobile-expand]');
+ if(expand){
+  event.preventDefault();event.stopPropagation();
+  const record=expand.closest('tr[data-event-row]');
+  if(!record)return;
+  const id=record.dataset.eventRow;
+  if(mobileExpandedIds.has(id))mobileExpandedIds.delete(id);else mobileExpandedIds.add(id);
+  const opened=mobileExpandedIds.has(id);
+  record.classList.toggle('mobile-expanded',opened);
+  expand.setAttribute('aria-expanded',String(opened));
+  expand.textContent=opened?'Хураах':'Дэлгэрэнгүй';
+  return;
+ }
  const add=event.target.closest('[data-group-add]');if(add){event.preventDefault();showNewEvent({equipment_id:add.dataset.groupAdd});return;}
  if(event.target.closest('[data-groups-open],[data-groups-close]')){const open=!!event.target.closest('[data-groups-open]');for(const d of $('results').querySelectorAll('.equipment-group')){d.open=open;if(open){openGroups.add(d.dataset.equipmentGroup);fillGroup(d);}else openGroups.delete(d.dataset.equipmentGroup);}return;}
  const more=event.target.closest('[data-group-more]');if(more){fillGroup(more.closest('.equipment-group'),true);return;}
