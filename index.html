@@ -964,6 +964,26 @@ checkSession();
 (function(){
 'use strict';
 const interval=15000;
+function makeSyncHealthNotice(){
+ let missed=0,lastSuccess=0,node=null;
+ function ensure(){
+  if(node)return node;
+  node=document.createElement('div');
+  node.id='ets-sync-stale-warning';
+  node.setAttribute('role','status');
+  node.setAttribute('aria-live','polite');
+  node.style.cssText='position:fixed;top:72px;right:12px;z-index:80;max-width:min(450px,calc(100vw - 24px));padding:10px 13px;border-radius:8px;border:1px solid #b98235;background:#362819;color:#ffe0a0;box-shadow:0 5px 20px #0007;font:600 12px/1.5 system-ui;pointer-events:none;';
+  node.hidden=true;
+  document.body.appendChild(node);
+  return node;
+ }
+ return {
+  ok(){missed=0;lastSuccess=Date.now();if(node)node.hidden=true;},
+  fail(){if(++missed<2)return;const el=ensure();const time=lastSuccess?new Date(lastSuccess).toLocaleTimeString('mn-MN',{hour:'2-digit',minute:'2-digit'}):'тодорхойгүй';el.textContent='⚠ Мэдээлэл шинэчлэгдсэнгүй. Дэлгэц дээрх төлөв хуучирсан байж болно. Сүүлд амжилттай шалгасан: '+time+'. Сүлжээ сэргэсэн үед автоматаар дахин шалгана.';el.hidden=false;},
+  reset(){missed=0;if(node)node.hidden=true;}
+ };
+}
+const syncHealth=makeSyncHealthNotice();
 let busy=false,last=0;
 const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 function canRead(){
@@ -990,20 +1010,22 @@ async function tick(){
  busy=true;last=Date.now();
  try{
   if(tab==='events'){
-   if(request.state==='error'){await loadEventWindow();return;}
+   if(request.state==='error'){const restored=await loadEventWindow();if(restored)syncHealth.ok();else if(eventWindow.state==='error')syncHealth.fail();return;}
    const [lo,hi]=DesktopEditCore.bounds(scope.day,scope.shift);
    const rows=await fetchShiftEvents(sb,lo,hi,valid);
-   if(valid()&&Array.isArray(rows)&&!equal(events,rows)){events=rows;replaceList(true);}
+   if(valid()&&Array.isArray(rows)){if(!equal(events,rows)){events=rows;replaceList(true);}syncHealth.ok();}
   }else if(tab==='production'){
    const {data,error}=await sb.from('production_logs').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).limit(2000);
-   if(valid()&&!error&&Array.isArray(data)&&!equal(production,data)){production=data;replaceList(true);}
+   if(error)throw error;
+   if(valid()&&Array.isArray(data)){if(!equal(production,data)){production=data;replaceList(true);}syncHealth.ok();}
   }
- }catch(_){/* A failed background read must not replace the current rows. */}
+ }catch(_){syncHealth.fail();/* A failed background read must not replace the current rows. */}
  finally{busy=false;}
 }
 setInterval(tick,interval);
 window.addEventListener('focus',tick);
 window.addEventListener('online',tick);
+document.getElementById('logoutBtn')?.addEventListener('click',()=>syncHealth.reset());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)void tick();});
 })();
 </script>
