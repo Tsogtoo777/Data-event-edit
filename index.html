@@ -858,7 +858,7 @@ function analyse(rows,window,now){
   list.sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time)||String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));let frontier=null,end=-Infinity;
   for(const row of list){const t=interval(row,now);if(!t.valid){add(row,{kind:'invalid',text:'Цаг буруу'});continue;}
    if(frontier){const left=t.a<end?t.a:end,right=t.a<end?Math.min(t.b,end):t.a,lo=window?Math.max(left,window[0]):left,hi=window?Math.min(right,window[1]):right;
-    if(hi-lo>1){const mins=(hi-lo)/60000;add(row,{kind:t.a<end?'overlap':'gap',minutes:mins,previous:frontier.id,text:(t.a<end?'Давхардал ':'Завсар ')+mins.toFixed(2)+' мин'});}
+    if(hi-lo>0){const ms=hi-lo,mins=ms/60000;add(row,{kind:t.a<end?'overlap':'gap',minutes:mins,seconds:ms/1000,previous:frontier.id,text:(t.a<end?'Давхардал ':'Завсар ')+(ms/1000).toFixed(3)+' сек'});}
    }
    if(t.b>end){end=t.b;frontier=row;}
   }
@@ -966,7 +966,7 @@ renderEventEditor=function(row){priorEditor(row);const actions=$('editor').query
 const dialog=document.createElement('dialog');dialog.id='previewE2';
 dialog.innerHTML='<h2 id="e2Title">Өөрчлөлтийг шалгах</h2><p id="e2Equipment"></p><p id="e2Summary" class="subtle"></p><p class="notice">Цуцлахад сонгосон хугацааг өмнөх төлөвт нэгтгэнэ. Хуучин мөрүүд бүтнээрээ өөрчлөлтийн түүхэнд хадгалагдана.</p><div id="e2Rows"></div><div id="e2Error" class="error hidden"></div><p id="e2Message" role="status"></p><div class="actions"><button id="e2Save" class="primary" type="button">Баталгаажуулж хадгалах</button><button id="e2Close" type="button">Болих</button></div>';
 document.body.append(dialog);
-function stamp(v){return v?historicalInput(v).replace('T',' '):'Нээлттэй';}
+function stamp(v){return v?new Date(Date.parse(v)+8*3600000).toISOString().slice(0,19).replace('T',' '):'Нээлттэй';}
 function detail(row){if(!row)return '—';return '<b>'+esc(row.status||'—')+'</b><br>'+esc(stamp(row.start_time))+' → '+esc(stamp(row.end_time))+'<br>Оператор: '+esc(row.operator_name||'—')+' · Моточаг: '+esc(row.smu??'—')+' · Км: '+esc(row.km??'—')+(row.comment?'<br>'+esc(row.comment):'');}
 const verbs={update:'Хугацаа өөрчлөх',resume:'Хуучин төлөвийг үргэлжлүүлэх',insert:'Шинэ төлөв',cancel:'Цуцлах · түүхэнд хадгална'};
 async function rpc(mode,operation,input,expected,request){const {data,error}=await sb.rpc('ets_edit_event_e22',{p_mode:mode,p_operation:operation,p_input:input,p_expected:expected||null,p_request:request||null});if(error)throw error;if(!data?.ok)throw Error('Хадгалалтын баталгаа ирсэнгүй.');return data;}
