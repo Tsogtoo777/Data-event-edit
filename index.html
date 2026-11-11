@@ -699,6 +699,7 @@ async function computeEditTimes(row,startValue,endValue){
  const start=exactEditStart(row,startValue),boundary=await validateEditStart(row,start);
  const next=Date.parse(start)===Date.parse(row.start_time)?boundary.originalNext:await nextEditEvent(row,start);
  const end=next?next.start_time:(endValue===''?null:(row.end_time&&endValue===historicalInput(row.end_time)?row.end_time:historicalISO(endValue)));
+ if(!next&&end&&(!row.end_time||Date.parse(end)!==Date.parse(row.end_time)))throw Error('Дараагийн төлөв байхгүй бол сүүлийн төлөвийг гараар хаах, дуусах цагийг шилжүүлэх нь завсар үүсгэнэ. Шинэ төлөв нэмээд цагийг залгана уу.');
  if(end&&Date.parse(end)<=Date.parse(start))throw Error('Дуусах цаг эхлэх цагаас хойш байх ёстой.');
  return {start,end,next,previous:boundary.previous,gap:boundary.gap};
 }
